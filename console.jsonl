@@ -1,0 +1,224 @@
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792952911479}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952911479}
+{"level":"warn","message":"It looks like there are several instances of 'styled-components' initialized in this application. This may cause dynamic styles to not render properly, errors during the rehydration process, a missing theme prop, and makes your application bigger without good reason.\n\nSee https://s-c.sh/2BAXzed for more info.","timestamp":1792952933728}
+{"level":"debug","message":"[vite] invalidate /src/main.tsx: Could not Fast Refresh (\"true\" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports","timestamp":1792952933937}
+{"level":"debug","message":"[vite] hot updated: /src/main.tsx","timestamp":1792952933937}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952933937}
+{"level":"error","message":"Uncaught Error: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.","timestamp":1792952933983,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=5cca9a44:18427:11","stack":"Error: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.\n    at Object.throwInvalidHookError (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=5cca9a44:18427:17)\n    at useContext (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-TWJ6NINL.js?v=5cca9a44:1347:29)\n    at useConfig (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-O3MR4H2Y.js?v=5cca9a44:470:68)\n    at useReadContract (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-O3MR4H2Y.js?v=5cca9a44:2126:18)\n    at usePotCount (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/hooks/usePot.ts:17:10)\n    at useMyPots (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/hooks/useMyPots.ts?t=1792952910047:14:30)\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792952910047:169:35)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at mountIndeterminateComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21852:21)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22840:22)"}
+{"level":"error","message":"Uncaught Error: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.","timestamp":1792952934008,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=5cca9a44:18427:11","stack":"Error: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.\n    at Object.throwInvalidHookError (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=5cca9a44:18427:17)\n    at useContext (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-TWJ6NINL.js?v=5cca9a44:1347:29)\n    at useConfig (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-O3MR4H2Y.js?v=5cca9a44:470:68)\n    at useReadContract (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-O3MR4H2Y.js?v=5cca9a44:2126:18)\n    at usePotCount (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/hooks/usePot.ts:17:10)\n    at useMyPots (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/hooks/useMyPots.ts?t=1792952910047:14:30)\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792952910047:169:35)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at mountIndeterminateComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21852:21)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22840:22)"}
+{"level":"error","message":"The above error occurred in the <Home> component:\n\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792952910047:166:32)\n    at main\n    at div\n    at App (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/App.tsx?t=1792952910048:35:27)\n    at Le (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:18792:42)\n    at Web3ContextProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:34419:30)\n    at ConnectKitProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:37909:29)\n    at QueryClientProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-L72R44ZZ.js?v=de30308e:39:30)\n    at Hydrate (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-VDZ7TRVS.js?v=de30308e:392:11)\n    at WagmiProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-VDZ7TRVS.js?v=de30308e:414:11)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.","timestamp":1792952934017}
+{"level":"error","message":"Uncaught Error: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.","timestamp":1792952934017,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26344:13","stack":"Error: Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.\n    at Object.throwInvalidHookError (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=5cca9a44:18427:17)\n    at useContext (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-TWJ6NINL.js?v=5cca9a44:1347:29)\n    at useConfig (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-O3MR4H2Y.js?v=5cca9a44:470:68)\n    at useReadContract (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-O3MR4H2Y.js?v=5cca9a44:2126:18)\n    at usePotCount (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/hooks/usePot.ts:17:10)\n    at useMyPots (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/hooks/useMyPots.ts?t=1792952910047:14:30)\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792952910047:169:35)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at mountIndeterminateComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21852:21)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22840:22)"}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952934727}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792952934727}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952934729}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952934729}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952946236}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952946236}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952949304}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952949304}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952954758}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952954758}
+{"level":"debug","message":"[vite] hot updated: /src/components/PotHistory.tsx","timestamp":1792952965865}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952965865}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952974455}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952974455}
+{"level":"debug","message":"[vite] hot updated: /src/components/PotHistory.tsx","timestamp":1792952976399}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952976399}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952985552}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952985552}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952986328}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952986328}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952994631}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952994631}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792952995626}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792952995626}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953003442}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953003442}
+{"level":"error","message":"Warning: You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.","timestamp":1792953248441}
+{"level":"debug","message":"[vite] invalidate /src/main.tsx: Could not Fast Refresh (\"true\" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports","timestamp":1792953248441}
+{"level":"debug","message":"[vite] hot updated: /src/main.tsx","timestamp":1792953248441}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953248441}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953248441}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792953248441}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953248442}
+{"level":"debug","message":"[vite] hot updated: /src/components/ExplorerLink.tsx","timestamp":1792953248442}
+{"level":"debug","message":"[vite] hot updated: /src/components/WalletPanel.tsx","timestamp":1792953248442}
+{"level":"debug","message":"[vite] hot updated: /src/components/PotHistory.tsx","timestamp":1792953248442}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953248442}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953248678}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953289938}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953311122}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953311950}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953328088}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953399740}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953400331}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953411091}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953411091}
+{"level":"error","message":"Uncaught ReferenceError: ConnectKitButton is not defined","timestamp":1792953411108,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30","stack":"ReferenceError: ConnectKitButton is not defined\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at updateFunctionComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21508:28)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22850:22)\n    at HTMLUnknownElement.callCallback2 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10558:22)\n    at HTMLUnknownElement.dispatchEvent (chrome-extension://gacgndbocaddlemdiaadajmlggabdeod/inject.chrome.11349145.js:85:60968)\n    at Object.invokeGuardedCallbackDev (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10583:24)\n    at invokeGuardedCallback (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10617:39)\n    at beginWork$1 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26696:15)\n    at performUnitOfWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26129:20)"}
+{"level":"error","message":"Uncaught ReferenceError: ConnectKitButton is not defined","timestamp":1792953411118,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30","stack":"ReferenceError: ConnectKitButton is not defined\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at updateFunctionComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21508:28)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22850:22)\n    at HTMLUnknownElement.callCallback2 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10558:22)\n    at HTMLUnknownElement.dispatchEvent (chrome-extension://gacgndbocaddlemdiaadajmlggabdeod/inject.chrome.11349145.js:85:60968)\n    at Object.invokeGuardedCallbackDev (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10583:24)\n    at invokeGuardedCallback (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10617:39)\n    at beginWork$1 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26696:15)\n    at performUnitOfWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26129:20)"}
+{"level":"error","message":"The above error occurred in the <Home> component:\n\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:165:32)\n    at main\n    at div\n    at App (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/App.tsx:35:27)\n    at Le (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:18792:42)\n    at Web3ContextProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:34419:30)\n    at ConnectKitProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:37909:29)\n    at QueryClientProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-L72R44ZZ.js?v=de30308e:39:30)\n    at Hydrate (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-VDZ7TRVS.js?v=de30308e:392:11)\n    at WagmiProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-VDZ7TRVS.js?v=de30308e:414:11)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.","timestamp":1792953411118}
+{"level":"error","message":"Unhandled promise rejection: ReferenceError: ConnectKitButton is not defined\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at updateFunctionComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21508:28)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22850:22)\n    at beginWork$1 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26684:22)\n    at performUnitOfWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26129:20)\n    at workLoopSync (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26068:13)\n    at renderRootSync (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26047:15)\n    at recoverFromConcurrentError (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:25664:28)\n    at performSyncWorkOnRoot (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:25810:28)","timestamp":1792953411122,"stack":"ReferenceError: ConnectKitButton is not defined\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at updateFunctionComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21508:28)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22850:22)\n    at beginWork$1 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26684:22)\n    at performUnitOfWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26129:20)\n    at workLoopSync (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26068:13)\n    at renderRootSync (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26047:15)\n    at recoverFromConcurrentError (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:25664:28)\n    at performSyncWorkOnRoot (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:25810:28)"}
+{"level":"error","message":"Uncaught ReferenceError: ConnectKitButton is not defined","timestamp":1792953412385,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30","stack":"ReferenceError: ConnectKitButton is not defined\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at mountIndeterminateComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21852:21)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22840:22)\n    at HTMLUnknownElement.callCallback2 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10558:22)\n    at HTMLUnknownElement.dispatchEvent (chrome-extension://gacgndbocaddlemdiaadajmlggabdeod/inject.chrome.11349145.js:85:60968)\n    at Object.invokeGuardedCallbackDev (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10583:24)\n    at invokeGuardedCallback (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10617:39)\n    at beginWork$1 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26696:15)\n    at performUnitOfWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26129:20)"}
+{"level":"error","message":"Uncaught ReferenceError: ConnectKitButton is not defined","timestamp":1792953412391,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30","stack":"ReferenceError: ConnectKitButton is not defined\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at mountIndeterminateComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21852:21)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22840:22)\n    at HTMLUnknownElement.callCallback2 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10558:22)\n    at HTMLUnknownElement.dispatchEvent (chrome-extension://gacgndbocaddlemdiaadajmlggabdeod/inject.chrome.11349145.js:85:60968)\n    at Object.invokeGuardedCallbackDev (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10583:24)\n    at invokeGuardedCallback (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:10617:39)\n    at beginWork$1 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26696:15)\n    at performUnitOfWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26129:20)"}
+{"level":"error","message":"The above error occurred in the <Home> component:\n\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:165:32)\n    at main\n    at div\n    at App (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/App.tsx?t=1792953410033:35:27)\n    at Le (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:18792:42)\n    at Web3ContextProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:34419:30)\n    at ConnectKitProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/connectkit.js?v=de30308e:37909:29)\n    at QueryClientProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-L72R44ZZ.js?v=de30308e:39:30)\n    at Hydrate (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-VDZ7TRVS.js?v=de30308e:392:11)\n    at WagmiProvider (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-VDZ7TRVS.js?v=de30308e:414:11)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.","timestamp":1792953412394}
+{"level":"error","message":"Uncaught ReferenceError: ConnectKitButton is not defined","timestamp":1792953412394,"source":"https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26344:13","stack":"ReferenceError: ConnectKitButton is not defined\n    at Home (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/src/pages/Home.tsx?t=1792953410033:255:30)\n    at renderWithHooks (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:18474:26)\n    at mountIndeterminateComponent (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:21852:21)\n    at beginWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:22840:22)\n    at beginWork$1 (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26684:22)\n    at performUnitOfWork (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26129:20)\n    at workLoopSync (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26068:13)\n    at renderRootSync (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:26047:15)\n    at recoverFromConcurrentError (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:25664:28)\n    at performConcurrentWorkOnRoot (https://idxniz63lnc5oban0rzvb.preview.studio.arc.io/node_modules/.vite/deps/chunk-YI6NTZAD.js?v=de30308e:25612:30)"}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953417356}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953417356}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953417357}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953417357}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953419647}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953419647}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953419648}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953419648}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953423273}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953423273}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953423274}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953423274}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953429764}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953429764}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953429803}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953429803}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953430531}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953430531}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953430532}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953430532}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953441977}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953443387}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953465470}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953466154}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953534940}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953557108}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953902596}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953928244}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953928244}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953930681}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953930681}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792953930739}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953930739}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953934780}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953934780}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953934938}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953934938}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953938340}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953938341}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792953938342}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953938342}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953945696}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953945696}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953945697}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953945697}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953949331}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953949331}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953949332}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953949332}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953952214}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953952214}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953952215}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953952215}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953954702}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953954703}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953955674}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953955674}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792953958149}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953958149}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792953958176}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953958176}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953965724}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953965724}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792953965977}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792953965977}
+{"level":"debug","message":"[vite] connected.","timestamp":1792953978671}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954077230}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954077817}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954141515}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954152308}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792954155354}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954155354}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792954155357}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954155357}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954189238}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954189878}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954191132}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954205966}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954206352}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954206631}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954334127}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954345288}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954345789}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954361976}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954361976}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954362226}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954364953}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954364953}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954364955}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954364955}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954367025}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954367025}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954367026}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954367026}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954369212}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954369212}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954369213}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954369213}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954383475}
+{"level":"debug","message":"[vite] connected.","timestamp":1792954384637}
+{"level":"error","message":"Warning: You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.","timestamp":1792954809668}
+{"level":"debug","message":"[vite] invalidate /src/main.tsx: Could not Fast Refresh (\"true\" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports","timestamp":1792954809687}
+{"level":"debug","message":"[vite] hot updated: /src/main.tsx","timestamp":1792954809687}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954809687}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792954809687}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954809687}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792954809688}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792954809688}
+{"level":"debug","message":"[vite] hot updated: /src/components/ExplorerLink.tsx","timestamp":1792954809688}
+{"level":"debug","message":"[vite] hot updated: /src/components/PotHistory.tsx","timestamp":1792954809688}
+{"level":"debug","message":"[vite] hot updated: /src/components/WalletPanel.tsx","timestamp":1792954809688}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954810130}
+{"level":"error","message":"Warning: You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.","timestamp":1792954815800}
+{"level":"debug","message":"[vite] invalidate /src/main.tsx: Could not Fast Refresh (\"true\" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports","timestamp":1792954815809}
+{"level":"debug","message":"[vite] hot updated: /src/main.tsx","timestamp":1792954815809}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954815809}
+{"level":"error","message":"Warning: You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.","timestamp":1792954815878}
+{"level":"debug","message":"[vite] invalidate /src/main.tsx: Could not Fast Refresh (\"true\" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports","timestamp":1792954815897}
+{"level":"debug","message":"[vite] hot updated: /src/main.tsx","timestamp":1792954815897}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954815897}
+{"level":"debug","message":"(previous line repeated 2× more)","timestamp":1792954827011}
+{"level":"error","message":"Warning: You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.","timestamp":1792954827011}
+{"level":"debug","message":"[vite] invalidate /src/main.tsx: Could not Fast Refresh (\"true\" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/main.tsx","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/components/ExplorerLink.tsx","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/components/PotHistory.tsx","timestamp":1792954827012}
+{"level":"debug","message":"[vite] hot updated: /src/components/WalletPanel.tsx","timestamp":1792954827012}
+{"level":"debug","message":"(previous line repeated 2× more)","timestamp":1792954827129}
+{"level":"error","message":"Warning: You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it.","timestamp":1792954827129}
+{"level":"debug","message":"[vite] invalidate /src/main.tsx: Could not Fast Refresh (\"true\" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/main.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/App.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/pages/CreatePot.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/pages/Home.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/pages/PotPage.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/components/ExplorerLink.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/components/PotHistory.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/components/WalletPanel.tsx","timestamp":1792954827129}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954827214}
+{"level":"debug","message":"[vite] hot updated: /src/index.css","timestamp":1792954827223}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"4535752992343731\"","timestamp":1792955349557}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"527291363395894\"","timestamp":1792955349569}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"275053389\"","timestamp":1792955349612}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"7637084590123100\"","timestamp":1792955410311}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"5705751574863615\"","timestamp":1792955410312}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"506464132\"","timestamp":1792955410361}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"5481901203083802\"","timestamp":1792955418443}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"2739247073647473\"","timestamp":1792955418460}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"850242321\"","timestamp":1792955418523}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"6717037822994098\"","timestamp":1792955667205}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"486560949174512\"","timestamp":1792955667330}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"2861359589509730\"","timestamp":1792955667608}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"7523995324604586\"","timestamp":1792955685065}
+{"level":"warn","message":"StreamMiddleware - Unknown response id \"7234248922317517\"","timestamp":1792955685068}
