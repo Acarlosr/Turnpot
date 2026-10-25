@@ -4,7 +4,7 @@ import { ArrowRight, Users } from 'lucide-react'
 import { useMyPots } from '@/hooks/useMyPots'
 import { usePot } from '@/hooks/usePot'
 import { fmtUsdc, fmtStatus } from '@/lib/format'
-import { TARGET_CHAIN } from '@/lib/chain'
+import { useActiveChainConfig } from '@/lib/chain'
 
 interface PotRowProps {
   potId: bigint
@@ -42,7 +42,7 @@ function PotRow({ potId, onSelect, address }: PotRowProps) {
     >
       <div
         className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: 'rgba(18,45,69,0.07)' }}
+        style={{ background: 'var(--overlay-icon)' }}
       >
         <Users className="size-5" style={{ color: 'var(--accent)' }} />
       </div>
@@ -202,7 +202,7 @@ const STEPS = [
 export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
   const { address, isConnected } = useAccount()
   const { myPotIds, isLoading } = useMyPots(address)
-  const networkName = TARGET_CHAIN.name  // "Arc Testnet" or "Arc" (mainnet)
+  const { chainName: networkName, isDeployed } = useActiveChainConfig()
 
   return (
     <div className="flex flex-col gap-6">
@@ -302,11 +302,11 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
       )}
 
       {/* ── Connected: Create pot button ── */}
-      {isConnected && (
+      {isConnected && isDeployed && (
         <button
           onClick={onCreatePot}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold text-white transition-all hover:scale-[1.01] active:scale-[0.99]"
-          style={{ background: 'var(--accent)' }}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-all hover:scale-[1.01] active:scale-[0.99]"
+          style={{ background: 'var(--selected-bg)', color: 'var(--selected-text)' }}
         >
           Create a new pot
           <ArrowRight className="size-4" />

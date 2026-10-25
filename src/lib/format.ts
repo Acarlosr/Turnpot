@@ -13,6 +13,15 @@ export function fmtUsdc(raw: bigint | undefined | null): string {
   })
 }
 
+/** Format a native-USDC bigint (18 dec) to exactly 2 decimal places, e.g. "12.34" */
+export function fmtUsdc2(raw: bigint | undefined | null): string {
+  if (raw === undefined || raw === null) return '—'
+  return Number(formatUnits(raw, 18)).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 /** Shorten a hex address: 0x1234…abcd */
 export function fmtAddr(addr: string | undefined): string {
   if (!addr) return ''

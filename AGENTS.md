@@ -37,10 +37,13 @@ bun run dev
 
 | Contract | Network | Address | Notes |
 |---|---|---|---|
-| TurnPot (v2, security-fixed) | Arc Testnet | `0x9a12d53666af8359a042a89c433701e97296530f` | Current — includes CreatorNotMember + withdrawTo fixes |
+| TurnPot (v2, security-fixed) | Arc Mainnet | `0xc2e7c67334cb6fce6f2e3809000d804481d12bf3` | **Production** — deployed 2026-10-25 |
+| TurnPot (v2, security-fixed) | Arc Testnet | `0x9a12d53666af8359a042a89c433701e97296530f` | Current testnet — includes CreatorNotMember + withdrawTo fixes |
 | TurnPot (v1, original) | Arc Testnet | `0x2cdf78c00436087866429c9c09dbd89e6cf3717b` | Superseded — pre-security-review |
 
-Explorer (v2): https://explorer.testnet.arc.io/address/0x9a12d53666af8359a042a89c433701e97296530f
+Mainnet explorer: https://explorer.arc.io/address/0xc2e7c67334cb6fce6f2e3809000d804481d12bf3
+Mainnet deploy tx: https://explorer.arc.io/tx/0x28f07c32da1c891b868fe385b9fdf3452a2cf61f2c419fa457eefde19498bc1e
+Testnet explorer (v2): https://explorer.testnet.arc.io/address/0x9a12d53666af8359a042a89c433701e97296530f
 
 ## Design Decisions
 

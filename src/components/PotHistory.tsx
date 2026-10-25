@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { usePublicClient } from 'wagmi'
 import { parseAbiItem, decodeEventLog } from 'viem'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
-import { TURNPOT_ADDRESS, TARGET_CHAIN_ID, explorerTx } from '@/lib/chain'
+import { useActiveChainConfig, explorerTx } from '@/lib/chain'
 import { fmtUsdc, fmtAddr } from '@/lib/format'
 import { ExternalLink } from 'lucide-react'
 
@@ -28,7 +28,8 @@ const WITHDRAWN_TOPIC = parseAbiItem(
 )
 
 export default function PotHistory({ potId }: { potId: bigint }) {
-  const client = usePublicClient({ chainId: TARGET_CHAIN_ID })
+  const { chainId: activeChainId, turnpotAddress } = useActiveChainConfig()
+  const client = usePublicClient({ chainId: activeChainId })
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -39,23 +40,24 @@ export default function PotHistory({ potId }: { potId: bigint }) {
     async function load() {
       if (!client) return
       try {
+        const addr = turnpotAddress as `0x${string}`
         const [closed, cancelled2, withdrawn] = await Promise.all([
           client.getLogs({
-            address: TURNPOT_ADDRESS,
+            address: addr,
             event: CLOSED_TOPIC,
             args: { potId },
             fromBlock: 0n,
             toBlock: 'latest',
           }),
           client.getLogs({
-            address: TURNPOT_ADDRESS,
+            address: addr,
             event: CANCELLED_TOPIC,
             args: { potId },
             fromBlock: 0n,
             toBlock: 'latest',
           }),
           client.getLogs({
-            address: TURNPOT_ADDRESS,
+            address: addr,
             event: WITHDRAWN_TOPIC,
             fromBlock: 0n,
             toBlock: 'latest',
@@ -124,7 +126,7 @@ export default function PotHistory({ potId }: { potId: bigint }) {
     return () => {
       cancelled = true
     }
-  }, [potId, client])
+  }, [potId, client, turnpotAddress])
 
   if (loading) {
     return (
@@ -166,7 +168,7 @@ export default function PotHistory({ potId }: { potId: bigint }) {
             </p>
             {e.txHash && e.txHash !== '0x' && (
               <a
-                href={explorerTx(e.txHash)}
+                href={explorerTx(e.txHash, activeChainId)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-0.5 text-xs"

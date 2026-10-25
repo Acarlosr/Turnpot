@@ -1,11 +1,16 @@
 /**
- * Chain and contract configuration.
- * Switch VITE_CHAIN=mainnet to point the app at Arc mainnet.
+ * Chain and contract configuration for TurnPot.
  *
- * Both chains are defined inline so endpoint values are explicit and not
- * inherited from a bundled library that may lag behind network migrations.
+ * Supported chains: Arc Testnet (5042002) and Arc Mainnet (5042).
+ * The app is network-aware at runtime — it reads the wallet's connected chain
+ * and looks up the right contract address and explorer from CHAIN_CONFIGS.
+ *
+ * To fill in the mainnet address after deploy, update CONTRACT_ADDRESS_MAINNET.
  */
 import type { Chain } from 'viem'
+import { useAccount } from 'wagmi'
+
+// ─── Chain definitions ────────────────────────────────────────────────────────
 
 export const arcTestnet = {
   id: 5042002,
@@ -32,33 +37,100 @@ export const arcMainnet = {
   },
 } as const satisfies Chain
 
-const IS_MAINNET = import.meta.env.VITE_CHAIN === 'mainnet'
+// ─── Contract addresses ───────────────────────────────────────────────────────
+// Both addresses are committed here so any deployed build works without env vars.
+// .env overrides (VITE_TURNPOT_ADDRESS_TESTNET / VITE_TURNPOT_ADDRESS_MAINNET)
+// are optional and only needed when pointing at a different deployment.
 
-export const TARGET_CHAIN: Chain = IS_MAINNET ? arcMainnet : arcTestnet
-
-export const TARGET_CHAIN_ID = TARGET_CHAIN.id
-
-// Contract address per environment
-const CONTRACT_ADDRESS_TESTNET =
+const CONTRACT_ADDRESS_TESTNET: string =
   (import.meta.env.VITE_TURNPOT_ADDRESS_TESTNET as string | undefined) ??
   '0x9a12d53666af8359a042a89c433701e97296530f'
 
-const CONTRACT_ADDRESS_MAINNET =
-  (import.meta.env.VITE_TURNPOT_ADDRESS_MAINNET as string | undefined) ?? ''
+const CONTRACT_ADDRESS_MAINNET: string =
+  (import.meta.env.VITE_TURNPOT_ADDRESS_MAINNET as string | undefined) ??
+  '0xc2e7c67334cb6fce6f2e3809000d804481d12bf3'
 
-export const TURNPOT_ADDRESS: `0x${string}` = (
-  IS_MAINNET ? CONTRACT_ADDRESS_MAINNET : CONTRACT_ADDRESS_TESTNET
-) as `0x${string}`
+// ─── Per-chain config map ─────────────────────────────────────────────────────
 
-// Explorer helpers — always derived from the active chain definition, never hardcoded.
-// Both arcTestnet and arcMainnet always define blockExplorers; the non-null assertion is safe.
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-const EXPLORER_BASE = TARGET_CHAIN.blockExplorers!.default.url
-
-export function explorerTx(hash: string): string {
-  return `${EXPLORER_BASE}/tx/${hash}`
+export interface ChainConfig {
+  chain: Chain
+  chainId: number
+  chainName: string
+  isTestnet: boolean
+  turnpotAddress: string      // empty string = not deployed yet
+  explorerBase: string
+  rpcUrl: string
 }
 
-export function explorerAddr(address: string): string {
-  return `${EXPLORER_BASE}/address/${address}`
+export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
+  [arcTestnet.id]: {
+    chain: arcTestnet,
+    chainId: arcTestnet.id,
+    chainName: arcTestnet.name,
+    isTestnet: true,
+    turnpotAddress: CONTRACT_ADDRESS_TESTNET,
+    explorerBase: 'https://explorer.testnet.arc.io',
+    rpcUrl: 'https://rpc.testnet.arc.io',
+  },
+  [arcMainnet.id]: {
+    chain: arcMainnet,
+    chainId: arcMainnet.id,
+    chainName: 'Arc Mainnet',
+    isTestnet: false,
+    turnpotAddress: CONTRACT_ADDRESS_MAINNET,
+    explorerBase: 'https://explorer.arc.io',
+    rpcUrl: 'https://rpc.mainnet.arc.io',
+  },
 }
+
+export const SUPPORTED_CHAIN_IDS = Object.keys(CHAIN_CONFIGS).map(Number)
+
+// ─── Hook: resolve config for the wallet's connected chain ───────────────────
+
+export interface ActiveChainConfig extends ChainConfig {
+  isKnown: boolean           // true when the chain is one of our two Arc chains
+  isDeployed: boolean        // true when turnpotAddress is non-empty
+  turnpotAddress: `0x${string}` | ''
+}
+
+export function useActiveChainConfig(): ActiveChainConfig {
+  const { chainId } = useAccount()
+  const cfg = chainId !== undefined ? CHAIN_CONFIGS[chainId] : undefined
+
+  if (cfg) {
+    return {
+      ...cfg,
+      turnpotAddress: cfg.turnpotAddress as `0x${string}` | '',
+      isKnown: true,
+      isDeployed: cfg.turnpotAddress.length > 0,
+    }
+  }
+
+  // Wallet disconnected or on an unknown chain — fall back to testnet config
+  return {
+    ...CHAIN_CONFIGS[arcTestnet.id],
+    turnpotAddress: CONTRACT_ADDRESS_TESTNET as `0x${string}`,
+    isKnown: chainId === undefined,   // undefined = disconnected (not "wrong chain")
+    isDeployed: true,
+  }
+}
+
+// ─── Explorer helpers (use active chain config or pass chainId explicitly) ───
+
+export function explorerTx(hash: string, chainId?: number): string {
+  const base = (chainId !== undefined ? CHAIN_CONFIGS[chainId]?.explorerBase : undefined)
+    ?? CHAIN_CONFIGS[arcTestnet.id].explorerBase
+  return `${base}/tx/${hash}`
+}
+
+export function explorerAddr(address: string, chainId?: number): string {
+  const base = (chainId !== undefined ? CHAIN_CONFIGS[chainId]?.explorerBase : undefined)
+    ?? CHAIN_CONFIGS[arcTestnet.id].explorerBase
+  return `${base}/address/${address}`
+}
+
+// ─── Legacy constants kept for backward compat (DeployPage, WalletPanel) ────
+
+export const TARGET_CHAIN = arcTestnet as Chain
+export const TARGET_CHAIN_ID = arcTestnet.id
+export const TURNPOT_ADDRESS = CONTRACT_ADDRESS_TESTNET as `0x${string}`

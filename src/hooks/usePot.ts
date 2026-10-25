@@ -1,6 +1,6 @@
 import { useReadContract, useReadContracts } from 'wagmi'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
-import { TURNPOT_ADDRESS, TARGET_CHAIN_ID } from '@/lib/chain'
+import { useActiveChainConfig } from '@/lib/chain'
 
 export interface PotData {
   members: readonly `0x${string}`[]
@@ -11,40 +11,61 @@ export interface PotData {
   status: number
 }
 
-const base = {
-  address: TURNPOT_ADDRESS,
-  abi: TURNPOT_ABI,
-  chainId: TARGET_CHAIN_ID,
-} as const
+/** Returns the wagmi contract base for the wallet's active Arc chain. */
+function useContractBase() {
+  const { chainId, turnpotAddress, isDeployed } = useActiveChainConfig()
+  return {
+    address: (isDeployed ? turnpotAddress : '0x0000000000000000000000000000000000000000') as `0x${string}`,
+    abi: TURNPOT_ABI,
+    chainId,
+    _enabled: isDeployed,
+  }
+}
 
 export function usePotCount() {
-  return useReadContract({ ...base, functionName: 'potCount' })
+  const base = useContractBase()
+  return useReadContract({
+    address: base.address,
+    abi: base.abi,
+    chainId: base.chainId,
+    functionName: 'potCount',
+    query: { enabled: base._enabled },
+  })
 }
 
 export function usePot(potId: bigint | undefined) {
+  const base = useContractBase()
   return useReadContract({
-    ...base,
+    address: base.address,
+    abi: base.abi,
+    chainId: base.chainId,
     functionName: 'getPot',
     args: potId !== undefined ? [potId] : undefined,
-    query: { enabled: potId !== undefined },
+    query: { enabled: base._enabled && potId !== undefined },
   })
 }
 
 export function useRoundDeadline(potId: bigint | undefined) {
+  const base = useContractBase()
   return useReadContract({
-    ...base,
+    address: base.address,
+    abi: base.abi,
+    chainId: base.chainId,
     functionName: 'roundDeadline',
     args: potId !== undefined ? [potId] : undefined,
-    query: { enabled: potId !== undefined },
+    query: { enabled: base._enabled && potId !== undefined },
   })
 }
 
 export function usePaidCount(potId: bigint | undefined) {
+  const base = useContractBase()
   return useReadContract({
-    ...base,
+    address: base.address,
+    abi: base.abi,
+    chainId: base.chainId,
     functionName: 'paidCount',
     args: potId !== undefined ? [potId] : undefined,
-    query: { enabled: potId !== undefined },
+    query: { enabled: base._enabled && potId !== undefined },
   })
 }
 
@@ -53,23 +74,29 @@ export function useHasPaid(
   round: bigint | undefined,
   member: `0x${string}` | undefined,
 ) {
+  const base = useContractBase()
   return useReadContract({
-    ...base,
+    address: base.address,
+    abi: base.abi,
+    chainId: base.chainId,
     functionName: 'hasPaid',
     args:
       potId !== undefined && round !== undefined && member
         ? [potId, round, member]
         : undefined,
-    query: { enabled: potId !== undefined && round !== undefined && !!member },
+    query: { enabled: base._enabled && potId !== undefined && round !== undefined && !!member },
   })
 }
 
 export function useMemberDefaults(member: `0x${string}` | undefined) {
+  const base = useContractBase()
   return useReadContract({
-    ...base,
+    address: base.address,
+    abi: base.abi,
+    chainId: base.chainId,
     functionName: 'defaults',
     args: member ? [member] : undefined,
-    query: { enabled: !!member },
+    query: { enabled: base._enabled && !!member },
   })
 }
 
@@ -79,35 +106,44 @@ export function useRoundPayments(
   round: bigint | undefined,
   members: readonly `0x${string}`[],
 ) {
+  const base = useContractBase()
   return useReadContracts({
     contracts: members.map((m) => ({
-      ...base,
+      address: base.address,
+      abi: base.abi,
+      chainId: base.chainId,
       functionName: 'hasPaid' as const,
       args: [potId!, round!, m] as const,
     })),
     query: {
-      enabled: potId !== undefined && round !== undefined && members.length > 0,
+      enabled: base._enabled && potId !== undefined && round !== undefined && members.length > 0,
     },
   })
 }
 
 /** Fetch defaults for every member */
 export function useMembersDefaults(members: readonly `0x${string}`[]) {
+  const base = useContractBase()
   return useReadContracts({
     contracts: members.map((m) => ({
-      ...base,
+      address: base.address,
+      abi: base.abi,
+      chainId: base.chainId,
       functionName: 'defaults' as const,
       args: [m] as const,
     })),
-    query: { enabled: members.length > 0 },
+    query: { enabled: base._enabled && members.length > 0 },
   })
 }
 
 export function useWithdrawableBalance(account: `0x${string}` | undefined) {
+  const base = useContractBase()
   return useReadContract({
-    ...base,
+    address: base.address,
+    abi: base.abi,
+    chainId: base.chainId,
     functionName: 'balanceOf',
     args: account ? [account] : undefined,
-    query: { enabled: !!account },
+    query: { enabled: base._enabled && !!account },
   })
 }

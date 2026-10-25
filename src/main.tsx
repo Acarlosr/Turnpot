@@ -20,10 +20,23 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ConnectKitProvider } from 'connectkit'
 import { Toaster } from 'sonner'
 import { config } from './config'
+import { useTheme } from './hooks/useTheme'
 import App from './App'
 import './index.css'
 
 const queryClient = new QueryClient()
+
+/** Reads the live theme so ConnectKit and Toaster can match it. */
+function ThemedApp() {
+  const { theme } = useTheme()
+  return (
+    <ConnectKitProvider theme="auto" mode={theme}>
+      <App />
+      <StudioWatermark />
+      <Toaster position="top-center" theme={theme} />
+    </ConnectKitProvider>
+  )
+}
 
 // Studio logo SVG
 const StudioLogo = () => (
@@ -70,11 +83,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider>
-          <App />
-          <StudioWatermark />
-          <Toaster position="top-center" />
-        </ConnectKitProvider>
+        <ThemedApp />
       </QueryClientProvider>
     </WagmiProvider>
   </StrictMode>,

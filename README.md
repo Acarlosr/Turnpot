@@ -19,7 +19,8 @@ Known as *consórcio* in Brazil, *tanda* in Mexico, *susu* in West Africa.
 - **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Framer Motion
 - **Web3**: wagmi v2, viem v2, ConnectKit
 - **Contract**: Solidity 0.8.28 + Foundry, deployed on Arc Testnet
-- **Chain**: Arc Testnet (chain ID 5042002) — configurable to Arc mainnet via `VITE_CHAIN=mainnet`
+- **Chain**: Arc Testnet (5042002) and Arc Mainnet (5042) — network-aware at runtime; the wallet's connected chain determines which contract and explorer are used
+- **Theming**: light/dark mode with system-preference default, persisted to `localStorage`
 
 ---
 
@@ -42,7 +43,7 @@ bun install
 |---|---|---|
 | `VITE_CHAIN` | `testnet` (default) or `mainnet` | No |
 | `VITE_TURNPOT_ADDRESS_TESTNET` | Override testnet contract address | No |
-| `VITE_TURNPOT_ADDRESS_MAINNET` | Arc mainnet contract address | Only for mainnet |
+| `VITE_TURNPOT_ADDRESS_MAINNET` | Arc mainnet contract address (set after deploying via `/deploy`) | Only for mainnet |
 
 ### Run
 

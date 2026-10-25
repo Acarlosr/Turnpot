@@ -36,7 +36,17 @@ Run with: `bun run contracts:test`
 
 ---
 
-## Deployed contract (Arc Testnet)
+## Deployed contracts
+
+### Arc Mainnet
+
+| Version | Address | Deploy tx |
+|---|---|---|
+| v2 (security-fixed) | [`0xc2e7c67334cb6fce6f2e3809000d804481d12bf3`](https://explorer.arc.io/address/0xc2e7c67334cb6fce6f2e3809000d804481d12bf3) | [`0x28f07c32da1c891b868fe385b9fdf3452a2cf61f2c419fa457eefde19498bc1e`](https://explorer.arc.io/tx/0x28f07c32da1c891b868fe385b9fdf3452a2cf61f2c419fa457eefde19498bc1e) |
+
+Sanity check (read on 2026-10-25): `potCount() = 0`, `MAX_CONTRIBUTION() = 1000000000000000000` (1 USDC).
+
+### Arc Testnet
 
 | Version | Address | Notes |
 |---|---|---|
@@ -93,4 +103,4 @@ See `SECURITY.md` for the full report including reviewed-and-cleared areas (reen
 
 ---
 
-> Arc Studio deploys to testnet only. The mainnet contract was deployed with Foundry from my own wallet, from exactly the same source Studio wrote and tested (same compiler settings).
+> Arc Studio deploys to testnet only. The mainnet contract was deployed with Foundry from the owner's wallet, from exactly the same source Studio wrote and tested (same compiler settings, same bytecode the 65-test suite ran against).

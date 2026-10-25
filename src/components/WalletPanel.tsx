@@ -2,7 +2,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagm
 import { Wallet } from 'lucide-react'
 import { useWithdrawableBalance } from '@/hooks/usePot'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
-import { TURNPOT_ADDRESS, TARGET_CHAIN_ID } from '@/lib/chain'
+import { useActiveChainConfig } from '@/lib/chain'
 import { fmtUsdc } from '@/lib/format'
 import TxButton from './TxButton'
 import ExplorerLink from './ExplorerLink'
@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 
 export default function WalletPanel() {
   const { address } = useAccount()
+  const { turnpotAddress, chainId: activeChainId } = useActiveChainConfig()
   const { data: balance, refetch } = useWithdrawableBalance(address)
 
   const {
@@ -20,7 +21,7 @@ export default function WalletPanel() {
   } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
-    chainId: TARGET_CHAIN_ID,
+    chainId: activeChainId,
   })
 
   if (isSuccess && hash) {
@@ -31,10 +32,10 @@ export default function WalletPanel() {
   const handleWithdraw = () => {
     writeContract(
       {
-        address: TURNPOT_ADDRESS,
+        address: turnpotAddress as `0x${string}`,
         abi: TURNPOT_ABI,
         functionName: 'withdraw',
-        chainId: TARGET_CHAIN_ID,
+        chainId: activeChainId,
       },
       {
         onError: (err) => {
@@ -59,7 +60,7 @@ export default function WalletPanel() {
       <div className="mb-3 flex items-center gap-2">
         <div
           className="flex size-7 items-center justify-center rounded-lg"
-          style={{ background: 'rgba(18,45,69,0.08)' }}
+          style={{ background: 'var(--overlay-icon)' }}
         >
           <Wallet className="size-4" style={{ color: 'var(--accent)' }} />
         </div>

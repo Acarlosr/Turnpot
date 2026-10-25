@@ -3,7 +3,6 @@ import {
   useAccount,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useSwitchChain,
 } from 'wagmi'
 import { ChevronLeft, Crown, Check, X, AlertTriangle } from 'lucide-react'
 import {
@@ -14,7 +13,7 @@ import {
   useMembersDefaults,
 } from '@/hooks/usePot'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
-import { TURNPOT_ADDRESS, TARGET_CHAIN_ID } from '@/lib/chain'
+import { useActiveChainConfig } from '@/lib/chain'
 import { fmtUsdc, fmtAddr, fmtStatus } from '@/lib/format'
 import TxButton from '@/components/TxButton'
 import ExplorerLink from '@/components/ExplorerLink'
@@ -29,9 +28,8 @@ interface PotPageProps {
 }
 
 export default function PotPage({ potId, onBack }: PotPageProps) {
-  const { address, chainId } = useAccount()
-  const { switchChain } = useSwitchChain()
-  const wrongChain = chainId !== TARGET_CHAIN_ID
+  const { address } = useAccount()
+  const { turnpotAddress, chainId: activeChainId } = useActiveChainConfig()
 
   const { data: potData, refetch: refetchPot } = usePot(potId)
   const { data: deadline, refetch: refetchDeadline } = useRoundDeadline(potId)
@@ -84,7 +82,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
     reset: resetContribute,
   } = useWriteContract()
   const { isLoading: contributeConfirming, isSuccess: contributeSuccess } =
-    useWaitForTransactionReceipt({ hash: contributeHash, chainId: TARGET_CHAIN_ID })
+    useWaitForTransactionReceipt({ hash: contributeHash, chainId: activeChainId })
 
   // --- CloseRound ---
   const {
@@ -94,7 +92,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
     reset: resetClose,
   } = useWriteContract()
   const { isLoading: closeConfirming, isSuccess: closeSuccess } =
-    useWaitForTransactionReceipt({ hash: closeHash, chainId: TARGET_CHAIN_ID })
+    useWaitForTransactionReceipt({ hash: closeHash, chainId: activeChainId })
 
   // --- CancelRound ---
   const {
@@ -104,7 +102,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
     reset: resetCancel,
   } = useWriteContract()
   const { isLoading: cancelConfirming, isSuccess: cancelSuccess } =
-    useWaitForTransactionReceipt({ hash: cancelHash, chainId: TARGET_CHAIN_ID })
+    useWaitForTransactionReceipt({ hash: cancelHash, chainId: activeChainId })
 
   // Refresh on success
   useEffect(() => {
@@ -129,15 +127,14 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
   }, [cancelSuccess, refetchPot])
 
   function handleContribute() {
-    if (wrongChain) { switchChain({ chainId: TARGET_CHAIN_ID }); return }
     writeContribute(
       {
-        address: TURNPOT_ADDRESS,
+        address: turnpotAddress as `0x${string}`,
         abi: TURNPOT_ABI,
         functionName: 'contribute',
         args: [potId],
         value: contribution,
-        chainId: TARGET_CHAIN_ID,
+        chainId: activeChainId,
       },
       {
         onError: (err) => {
@@ -153,14 +150,13 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
   }
 
   function handleClose() {
-    if (wrongChain) { switchChain({ chainId: TARGET_CHAIN_ID }); return }
     writeClose(
       {
-        address: TURNPOT_ADDRESS,
+        address: turnpotAddress as `0x${string}`,
         abi: TURNPOT_ABI,
         functionName: 'closeRound',
         args: [potId],
-        chainId: TARGET_CHAIN_ID,
+        chainId: activeChainId,
       },
       {
         onError: (err) => {
@@ -174,14 +170,13 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
   }
 
   function handleCancel() {
-    if (wrongChain) { switchChain({ chainId: TARGET_CHAIN_ID }); return }
     writeCancel(
       {
-        address: TURNPOT_ADDRESS,
+        address: turnpotAddress as `0x${string}`,
         abi: TURNPOT_ABI,
         functionName: 'cancelRound',
         args: [potId],
-        chainId: TARGET_CHAIN_ID,
+        chainId: activeChainId,
       },
       {
         onError: (err) => {
@@ -214,7 +209,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="flex size-9 shrink-0 items-center justify-center rounded-xl transition-all hover:bg-black/5"
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl transition-all hover:bg-black/5 dark:hover:bg-white/5"
         >
           <ChevronLeft className="size-5" style={{ color: 'var(--ink)' }} />
         </button>
@@ -248,7 +243,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
           backdropFilter: 'blur(16px)',
         }}
       >
-        <div className="grid grid-cols-3 divide-x divide-black/10">
+        <div className="grid grid-cols-3 divide-x" style={{ borderColor: 'var(--divide-col)' }}>
           <div className="min-w-0 pr-3">
             <p className="truncate text-xs" style={{ color: 'var(--muted)' }}>Contribution</p>
             <p className="mt-0.5 truncate text-base font-bold tabular-nums" style={{ color: 'var(--ink)' }}>
@@ -307,7 +302,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
                 className="flex items-center gap-3 rounded-xl px-3 py-2.5"
                 style={{
                   background: isRecipient
-                    ? 'rgba(18,45,69,0.07)'
+                    ? 'var(--overlay-recipient)'
                     : 'var(--surface-muted)',
                   border: isRecipient ? '1px solid var(--border-strong)' : '1px solid transparent',
                 }}
@@ -316,8 +311,8 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
                 <div
                   className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
                   style={{
-                    background: isRecipient ? 'var(--accent)' : 'var(--border)',
-                    color: isRecipient ? '#fff' : 'var(--muted)',
+                    background: isRecipient ? 'var(--selected-bg)' : 'var(--border)',
+                    color: isRecipient ? 'var(--selected-text)' : 'var(--muted)',
                   }}
                 >
                   {i + 1}
@@ -336,7 +331,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
                       <span
                         className="rounded-full px-1.5 py-0.5 text-xs font-semibold"
                         style={{
-                          background: 'rgba(16,97,166,0.12)',
+                          background: 'var(--overlay-you-badge-bg)',
                           color: 'var(--accent-hover)',
                         }}
                       >

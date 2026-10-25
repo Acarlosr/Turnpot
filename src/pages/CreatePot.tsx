@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseUnits } from 'viem'
 import { Plus, Trash2, ChevronLeft, Info } from 'lucide-react'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
-import { TURNPOT_ADDRESS, TARGET_CHAIN_ID } from '@/lib/chain'
+import { useActiveChainConfig, arcTestnet, arcMainnet } from '@/lib/chain'
 import { fmtUsdc } from '@/lib/format'
 import TxButton from '@/components/TxButton'
 import ExplorerLink from '@/components/ExplorerLink'
@@ -23,8 +23,9 @@ interface CreatePotProps {
 
 export default function CreatePot({ onBack }: CreatePotProps) {
   const { address, chainId } = useAccount()
-  const { switchChain } = useSwitchChain()
-  const wrongChain = chainId !== TARGET_CHAIN_ID
+  const { turnpotAddress, chainId: activeChainId, isDeployed } = useActiveChainConfig()
+  // Wrong chain: not on either Arc chain
+  const wrongChain = chainId !== arcTestnet.id && chainId !== arcMainnet.id
 
   // Members — creator is always first
   const [members, setMembers] = useState<string[]>([address ?? ''])
@@ -34,7 +35,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
   const { writeContract, data: hash, isPending, reset } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
-    chainId: TARGET_CHAIN_ID,
+    chainId: activeChainId,
   })
 
   // Validation
@@ -48,6 +49,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
 
   const canSubmit =
     !wrongChain &&
+    isDeployed &&
     memberCountOk &&
     !hasDuplicates &&
     !hasZeroAddr &&
@@ -72,13 +74,10 @@ export default function CreatePot({ onBack }: CreatePotProps) {
   }
 
   function handleCreate() {
-    if (wrongChain) {
-      switchChain({ chainId: TARGET_CHAIN_ID })
-      return
-    }
+    if (wrongChain || !isDeployed) return
     writeContract(
       {
-        address: TURNPOT_ADDRESS,
+        address: turnpotAddress as `0x${string}`,
         abi: TURNPOT_ABI,
         functionName: 'createPot',
         args: [
@@ -86,7 +85,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
           parseUnits(contribution, 18),
           BigInt(durationSeconds),
         ],
-        chainId: TARGET_CHAIN_ID,
+        chainId: activeChainId,
       },
       {
         onSuccess: () => {
@@ -118,7 +117,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="flex size-9 items-center justify-center rounded-xl transition-all hover:bg-black/5"
+          className="flex size-9 items-center justify-center rounded-xl transition-all hover:bg-black/5 dark:hover:bg-white/5"
         >
           <ChevronLeft className="size-5" style={{ color: 'var(--ink)' }} />
         </button>
@@ -148,7 +147,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
           <div key={i} className="flex items-center gap-2">
             <div
               className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-              style={{ background: 'var(--accent)', color: '#fff' }}
+              style={{ background: 'var(--selected-bg)', color: 'var(--selected-text)' }}
             >
               {i + 1}
             </div>
@@ -174,7 +173,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
             ) : (
               <button
                 onClick={() => removeMember(i)}
-                className="flex size-8 items-center justify-center rounded-lg transition-all hover:bg-red-50"
+                className="flex size-8 items-center justify-center rounded-lg transition-all hover:bg-red-50 dark:hover:bg-red-900/30"
                 style={{ color: 'var(--danger)' }}
               >
                 <Trash2 className="size-4" />
@@ -197,7 +196,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         {members.length < 10 && (
           <button
             onClick={addMember}
-            className="flex items-center gap-1.5 rounded-xl py-2 text-sm font-medium transition-all hover:bg-black/5"
+            className="flex items-center gap-1.5 rounded-xl py-2 text-sm font-medium transition-all hover:bg-black/5 dark:hover:bg-white/5"
             style={{ color: 'var(--accent-hover)' }}
           >
             <Plus className="size-4" />
@@ -253,7 +252,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         {contribOk && memberCountOk && (
           <div
             className="mt-3 flex items-center justify-between rounded-xl px-3 py-2"
-            style={{ background: 'rgba(18,45,69,0.06)' }}
+            style={{ background: 'var(--overlay-preview)' }}
           >
             <span className="text-xs" style={{ color: 'var(--muted)' }}>
               Total pot per round
@@ -288,10 +287,10 @@ export default function CreatePot({ onBack }: CreatePotProps) {
               style={{
                 background:
                   durationSeconds === p.seconds
-                    ? 'var(--accent)'
+                    ? 'var(--selected-bg)'
                     : 'var(--surface-muted)',
                 color:
-                  durationSeconds === p.seconds ? '#fff' : 'var(--ink-2)',
+                  durationSeconds === p.seconds ? 'var(--selected-text)' : 'var(--ink-2)',
                 border: `1px solid ${durationSeconds === p.seconds ? 'transparent' : 'var(--border)'}`,
               }}
             >
@@ -302,7 +301,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
 
         <div
           className="mt-3 flex items-start gap-1.5 rounded-xl px-3 py-2.5"
-          style={{ background: 'rgba(18,45,69,0.04)' }}
+          style={{ background: 'var(--overlay-info)' }}
         >
           <Info className="mt-0.5 size-3.5 shrink-0" style={{ color: 'var(--subtle)' }} />
           <p className="text-xs" style={{ color: 'var(--subtle)' }}>
@@ -312,19 +311,19 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         </div>
       </div>
 
-      {/* Wrong chain banner */}
-      {wrongChain && (
+      {/* Not-deployed notice */}
+      {!isDeployed && !wrongChain && (
         <div
           className="rounded-2xl px-4 py-3 text-sm font-medium"
-          style={{ background: 'rgba(186,43,76,0.08)', color: 'var(--danger)' }}
+          style={{ background: 'rgba(39,117,202,0.07)', color: 'var(--brand)' }}
         >
-          Switch to Arc Testnet to create a pot.
+          TurnPot is not deployed on this network yet.
         </div>
       )}
 
       <TxButton
-        label={wrongChain ? 'Switch to Arc Testnet' : 'Create pot'}
-        disabled={!canSubmit && !wrongChain}
+        label="Create pot"
+        disabled={!canSubmit}
         isPending={isPending}
         isConfirming={isConfirming}
         onClick={handleCreate}

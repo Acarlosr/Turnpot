@@ -28,14 +28,14 @@ export default function TxButton({
   const busy = isPending || isConfirming
   const styles: Record<string, string> = {
     primary:
-      'rounded-2xl py-3.5 text-sm font-semibold text-white transition-all hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
+      'rounded-2xl py-3.5 text-sm font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
     ghost:
-      'rounded-xl py-2.5 text-sm font-medium border transition-all hover:bg-black/5 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
+      'rounded-xl py-2.5 text-sm font-medium border transition-all hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
     danger:
       'rounded-2xl py-3 text-sm font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40',
   }
   const bg: Record<string, React.CSSProperties> = {
-    primary: { background: busy ? 'var(--accent)' : 'var(--accent)' },
+    primary: { background: 'var(--selected-bg)', color: 'var(--selected-text)' },
     ghost: {
       background: 'transparent',
       borderColor: 'var(--border-strong)',
