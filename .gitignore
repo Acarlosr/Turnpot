@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# Foundry build cache (but NOT contracts/out — the deploy page imports the artifact)
+cache/
+contracts/cache/
+
+# Foundry build output: ignore by default but keep the TurnPot artifact and forge-std
+contracts/out/
+!contracts/out/TurnPot.sol/
+!contracts/out/TurnPot.sol/TurnPot.json
+
+# Also keep lib/forge-std so tests run from a fresh clone
+# (lib/ is tracked; nothing to exclude here — git rm --cached only removes what's listed)
+
+# runtime logs
+console.jsonl
+traces.jsonl
+*.log
+
+# Compass deploy run logs
+.compass/
+
+# macOS
+.DS_Store

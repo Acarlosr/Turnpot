@@ -103,4 +103,4 @@ See `SECURITY.md` for the full report including reviewed-and-cleared areas (reen
 
 ---
 
-> Arc Studio deploys to testnet only. The mainnet contract was deployed with Foundry from the owner's wallet, from exactly the same source Studio wrote and tested (same compiler settings, same bytecode the 65-test suite ran against).
+> Arc Studio deploys to testnet only. The mainnet contract was deployed from the /deploy page of this app (built in Arc Studio) using the exact compiled artifact validated by the 65 Foundry tests, signed by my own wallet 0xDEA4841D45F44deC58eB246Ac985693cc562aEc5 in MetaMask. No recompilation.

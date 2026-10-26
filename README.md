@@ -4,6 +4,11 @@ A decentralised rotating savings circle where every member contributes each roun
 
 Built with [Arc Studio](https://studio.arc.io)
 
+**Live app:** https://turnpot.vercel.app
+**Mainnet contract:** https://explorer.arc.io/address/0xc2e7c67334cb6fce6f2e3809000d804481d12bf3
+**Deploy tx:** https://explorer.arc.io/tx/0x28f07c32da1c891b868fe385b9fdf3452a2cf61f2c419fa457eefde19498bc1e
+**Arc Studio project:** https://studio.arc.io/app/9b0de8d7-a57f-4024-b081-b8fdcf60ac70
+
 ---
 
 ## What it does
@@ -37,14 +42,6 @@ Known as *consórcio* in Brazil, *tanda* in Mexico, *susu* in West Africa.
 bun install
 ```
 
-### Environment variables
-
-| Variable | Purpose | Required |
-|---|---|---|
-| `VITE_CHAIN` | `testnet` (default) or `mainnet` | No |
-| `VITE_TURNPOT_ADDRESS_TESTNET` | Override testnet contract address | No |
-| `VITE_TURNPOT_ADDRESS_MAINNET` | Arc mainnet contract address (set after deploying via `/deploy`) | Only for mainnet |
-
 ### Run
 
 ```bash
@@ -75,7 +72,8 @@ The test suite has 65 tests across 8 files covering the full lifecycle, all reve
 
 ## Contract interface
 
-**Deployed**: `0x2cdf78c00436087866429c9c09dbd89e6cf3717b` on Arc Testnet
+**Arc Mainnet**: [`0xc2e7c67334cb6fce6f2e3809000d804481d12bf3`](https://explorer.arc.io/address/0xc2e7c67334cb6fce6f2e3809000d804481d12bf3)
+**Arc Testnet**: `0x9a12d53666af8359a042a89c433701e97296530f`
 
 | Function | Description |
 |---|---|
@@ -88,8 +86,12 @@ The test suite has 65 tests across 8 files covering the full lifecycle, all reve
 
 ---
 
-## Pointing at Arc mainnet
+## Environment variables
 
-1. Deploy the contract on Arc mainnet from your own wallet.
-2. Set `VITE_CHAIN=mainnet` and `VITE_TURNPOT_ADDRESS_MAINNET=0x<your address>` in `.env`.
-3. `bun run dev` (or `bun run build`).
+All variables are optional — the mainnet and testnet addresses are hardcoded in `src/lib/chain.ts`.
+
+| Variable | Purpose |
+|---|---|
+| `VITE_CHAIN` | `testnet` (default) or `mainnet` — sets the default chain at build time |
+| `VITE_TURNPOT_ADDRESS_TESTNET` | Override the testnet contract address |
+| `VITE_TURNPOT_ADDRESS_MAINNET` | Override the mainnet contract address |
