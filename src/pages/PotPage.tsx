@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import {
   useAccount,
   useWriteContract,
-  useWaitForTransactionReceipt,
 } from 'wagmi'
+import { useTxWatcher } from '@/hooks/useTxWatcher'
 import { ChevronLeft, Crown, Check, X, AlertTriangle } from 'lucide-react'
 import {
   usePot,
@@ -81,8 +81,11 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
     isPending: contributePending,
     reset: resetContribute,
   } = useWriteContract()
-  const { isLoading: contributeConfirming, isSuccess: contributeSuccess } =
-    useWaitForTransactionReceipt({ hash: contributeHash, chainId: activeChainId })
+  const { isConfirming: contributeConfirming, isSuccess: contributeSuccess, isTimeout: contributeTimeout } =
+    useTxWatcher(contributeHash, {
+      onTimeout: () => { toast.warning('Contribute tx submitted — check the explorer') },
+      onRevert:  () => { toast.error('Contribute transaction reverted') },
+    })
 
   // --- CloseRound ---
   const {
@@ -91,8 +94,11 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
     isPending: closePending,
     reset: resetClose,
   } = useWriteContract()
-  const { isLoading: closeConfirming, isSuccess: closeSuccess } =
-    useWaitForTransactionReceipt({ hash: closeHash, chainId: activeChainId })
+  const { isConfirming: closeConfirming, isSuccess: closeSuccess, isTimeout: closeTimeout } =
+    useTxWatcher(closeHash, {
+      onTimeout: () => { toast.warning('Close round tx submitted — check the explorer') },
+      onRevert:  () => { toast.error('Close round transaction reverted') },
+    })
 
   // --- CancelRound ---
   const {
@@ -101,10 +107,13 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
     isPending: cancelPending,
     reset: resetCancel,
   } = useWriteContract()
-  const { isLoading: cancelConfirming, isSuccess: cancelSuccess } =
-    useWaitForTransactionReceipt({ hash: cancelHash, chainId: activeChainId })
+  const { isConfirming: cancelConfirming, isSuccess: cancelSuccess, isTimeout: cancelTimeout } =
+    useTxWatcher(cancelHash, {
+      onTimeout: () => { toast.warning('Cancel round tx submitted — check the explorer') },
+      onRevert:  () => { toast.error('Cancel round transaction reverted') },
+    })
 
-  // Refresh on success
+  // Refresh on success (toasts fired via useTxWatcher onSuccess — avoid double-toast)
   useEffect(() => {
     if (contributeSuccess) {
       void refetchPot(); void refetchPayments(); void refetchPaidCount()
@@ -394,7 +403,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
                 onClick={handleContribute}
                 className="w-full"
               />
-              {contributeSuccess && contributeHash && (
+              {(contributeSuccess || contributeTimeout) && contributeHash && (
                 <ExplorerLink hash={contributeHash} />
               )}
             </div>
@@ -411,7 +420,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
               variant="ghost"
               className="w-full"
             />
-            {closeSuccess && closeHash && <ExplorerLink hash={closeHash} />}
+            {(closeSuccess || closeTimeout) && closeHash && <ExplorerLink hash={closeHash} />}
           </div>
 
           {/* Cancel round */}
@@ -425,7 +434,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
                 variant="danger"
                 className="w-full"
               />
-              {cancelSuccess && cancelHash && <ExplorerLink hash={cancelHash} />}
+              {(cancelSuccess || cancelTimeout) && cancelHash && <ExplorerLink hash={cancelHash} />}
             </div>
           )}
         </div>

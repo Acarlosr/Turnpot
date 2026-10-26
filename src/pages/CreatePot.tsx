@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useWriteContract } from 'wagmi'
 import { parseUnits } from 'viem'
 import { Plus, Trash2, ChevronLeft, Info } from 'lucide-react'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { useActiveChainConfig, arcTestnet, arcMainnet } from '@/lib/chain'
 import { fmtUsdc } from '@/lib/format'
+import { useTxWatcher } from '@/hooks/useTxWatcher'
 import TxButton from '@/components/TxButton'
 import ExplorerLink from '@/components/ExplorerLink'
 import { toast } from 'sonner'
@@ -33,9 +34,10 @@ export default function CreatePot({ onBack }: CreatePotProps) {
   const [durationSeconds, setDurationSeconds] = useState<number>(DURATION_PRESETS[0].seconds)
 
   const { writeContract, data: hash, isPending, reset } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-    chainId: activeChainId,
+  const { isConfirming, isSuccess, isTimeout } = useTxWatcher(hash, {
+    onSuccess: () => { toast.success('Pot created!') },
+    onTimeout: () => { toast.warning('Transaction submitted — check the explorer for confirmation') },
+    onRevert:  () => { toast.error('Transaction reverted on chain') },
   })
 
   // Validation
@@ -88,9 +90,6 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         chainId: activeChainId,
       },
       {
-        onSuccess: () => {
-          toast.success('Pot created!')
-        },
         onError: (err) => {
           const msg = err.message
           if (msg.includes('CreatorNotMember')) toast.error('You must be listed as a member')
@@ -337,6 +336,18 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         >
           <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--success)' }}>
             Pot created!
+          </p>
+          <ExplorerLink hash={hash} />
+        </div>
+      )}
+
+      {isTimeout && hash && (
+        <div
+          className="rounded-2xl p-4 text-center"
+          style={{ background: 'rgba(39,117,202,0.07)', border: '1px solid rgba(39,117,202,0.15)' }}
+        >
+          <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--brand)' }}>
+            Submitted — still waiting for confirmation
           </p>
           <ExplorerLink hash={hash} />
         </div>

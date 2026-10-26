@@ -1,4 +1,5 @@
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useWriteContract } from 'wagmi'
+import { useTxWatcher } from '@/hooks/useTxWatcher'
 import { Wallet } from 'lucide-react'
 import { useWithdrawableBalance } from '@/hooks/usePot'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
@@ -19,15 +20,14 @@ export default function WalletPanel() {
     isPending,
     reset,
   } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-    chainId: activeChainId,
+  const { isConfirming, isSuccess, isTimeout } = useTxWatcher(hash, {
+    onSuccess: () => {
+      void refetch()
+      toast.success('Withdrawn successfully')
+    },
+    onTimeout: () => { toast.warning('Withdraw tx submitted — check the explorer') },
+    onRevert:  () => { toast.error('Withdraw transaction reverted') },
   })
-
-  if (isSuccess && hash) {
-    void refetch()
-    toast.success('Withdrawn successfully')
-  }
 
   const handleWithdraw = () => {
     writeContract(
@@ -90,7 +90,7 @@ export default function WalletPanel() {
         className="w-full"
       />
 
-      {isSuccess && hash && (
+      {(isSuccess || isTimeout) && hash && (
         <div className="mt-3">
           <ExplorerLink hash={hash} />
         </div>
