@@ -89,7 +89,7 @@ interface HomeProps {
 }
 
 // ── SVG illustration: 4 avatars around a pot ─────────────────────────────────
-function RoscaIllustration() {
+function RoscaIllustration({ size = 160 }: { size?: number }) {
   // 4 members placed at 0°, 90°, 180°, 270° on a circle of r=68
   const cx = 100
   const cy = 100
@@ -104,8 +104,8 @@ function RoscaIllustration() {
   return (
     <svg
       viewBox="0 0 200 200"
-      width="160"
-      height="160"
+      width={size}
+      height={size}
       aria-hidden="true"
       className="mx-auto"
     >
@@ -299,6 +299,40 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
             )}
           </ConnectKitButton.Custom>
         </>
+      )}
+
+      {/* ── Connected: compact hero ── */}
+      {isConnected && (
+        <div
+          className="overflow-hidden rounded-3xl"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <div className="h-1 w-full" style={{ background: 'var(--brand)' }} />
+          <div className="flex items-center gap-4 px-5 py-4">
+            {/* Illustration — compact size */}
+            <div className="shrink-0">
+              <RoscaIllustration size={80} />
+            </div>
+            {/* Text */}
+            <div className="min-w-0">
+              <h1
+                className="display text-lg font-bold leading-tight"
+                style={{ color: 'var(--ink)' }}
+              >
+                Save together.<br />Take turns.
+              </h1>
+              <p
+                className="mt-1 text-xs leading-relaxed"
+                style={{ color: 'var(--ink-2)' }}
+              >
+                A rotating savings circle in USDC on {networkName}.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Connected: Create pot button ── */}

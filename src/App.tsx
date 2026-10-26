@@ -113,7 +113,7 @@ export default function App() {
           style={{ background: 'rgba(186,43,76,0.08)', color: 'var(--danger)', borderBottom: '1px solid rgba(186,43,76,0.12)' }}
         >
           <AlertTriangle className="size-4 shrink-0" />
-          <span>TurnPot runs on Arc Testnet and Arc Mainnet — please switch using the network pill.</span>
+          <span>TurnPot runs on Arc Mainnet and Arc Testnet — please switch using the network pill.</span>
         </div>
       )}
 

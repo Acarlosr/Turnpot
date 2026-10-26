@@ -106,12 +106,12 @@ export function useActiveChainConfig(): ActiveChainConfig {
     }
   }
 
-  // Wallet disconnected or on an unknown chain — fall back to testnet config
+  // Wallet disconnected or on an unknown chain — fall back to mainnet config
   return {
-    ...CHAIN_CONFIGS[arcTestnet.id],
-    turnpotAddress: CONTRACT_ADDRESS_TESTNET as `0x${string}`,
+    ...CHAIN_CONFIGS[arcMainnet.id],
+    turnpotAddress: CONTRACT_ADDRESS_MAINNET as `0x${string}`,
     isKnown: chainId === undefined,   // undefined = disconnected (not "wrong chain")
-    isDeployed: true,
+    isDeployed: CONTRACT_ADDRESS_MAINNET.length > 0,
   }
 }
 
@@ -119,13 +119,13 @@ export function useActiveChainConfig(): ActiveChainConfig {
 
 export function explorerTx(hash: string, chainId?: number): string {
   const base = (chainId !== undefined ? CHAIN_CONFIGS[chainId]?.explorerBase : undefined)
-    ?? CHAIN_CONFIGS[arcTestnet.id].explorerBase
+    ?? CHAIN_CONFIGS[arcMainnet.id].explorerBase
   return `${base}/tx/${hash}`
 }
 
 export function explorerAddr(address: string, chainId?: number): string {
   const base = (chainId !== undefined ? CHAIN_CONFIGS[chainId]?.explorerBase : undefined)
-    ?? CHAIN_CONFIGS[arcTestnet.id].explorerBase
+    ?? CHAIN_CONFIGS[arcMainnet.id].explorerBase
   return `${base}/address/${address}`
 }
 
