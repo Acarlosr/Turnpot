@@ -204,10 +204,18 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
   const { myPotIds, isLoading } = useMyPots(address)
   const { chainName: networkName, isDeployed } = useActiveChainConfig()
 
+  // Show the full hero when:
+  //   • the wallet is disconnected, OR
+  //   • connected but has no pots yet (and the scan has finished)
+  const hasPots = myPotIds.length > 0
+  const showFullHero = !isConnected || (!isLoading && !hasPots)
+  const showCompactHero = isConnected && (isLoading || hasPots)
+
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Disconnected hero ── */}
-      {!isConnected && (
+
+      {/* ── Full hero (disconnected OR connected with no pots) ── */}
+      {showFullHero && (
         <>
           {/* Hero card */}
           <div
@@ -245,11 +253,13 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
                 </p>
               </div>
 
-              {/* Cultural note */}
-              <p className="text-xs" style={{ color: 'var(--subtle)' }}>
-                Known as <em>consórcio</em> in Brazil, <em>tanda</em> in
-                Mexico, <em>susu</em> in West Africa. Powered by {networkName}.
-              </p>
+              {/* Cultural note — disconnected only */}
+              {!isConnected && (
+                <p className="text-xs" style={{ color: 'var(--subtle)' }}>
+                  Known as <em>consórcio</em> in Brazil, <em>tanda</em> in
+                  Mexico, <em>susu</em> in West Africa. Powered by {networkName}.
+                </p>
+              )}
             </div>
           </div>
 
@@ -285,24 +295,35 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
             </div>
           </div>
 
-          {/* Connect CTA */}
-          <ConnectKitButton.Custom>
-            {({ show }) => (
-              <button
-                onClick={show}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
-                style={{ background: 'var(--brand)' }}
-              >
-                Connect wallet to get started
-                <ArrowRight className="size-4" />
-              </button>
-            )}
-          </ConnectKitButton.Custom>
+          {/* CTA — Connect when disconnected, Create when connected */}
+          {!isConnected ? (
+            <ConnectKitButton.Custom>
+              {({ show }) => (
+                <button
+                  onClick={show}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
+                  style={{ background: 'var(--brand)' }}
+                >
+                  Connect wallet to get started
+                  <ArrowRight className="size-4" />
+                </button>
+              )}
+            </ConnectKitButton.Custom>
+          ) : isDeployed ? (
+            <button
+              onClick={onCreatePot}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-all hover:scale-[1.01] active:scale-[0.99]"
+              style={{ background: 'var(--selected-bg)', color: 'var(--selected-text)' }}
+            >
+              Create a new pot
+              <ArrowRight className="size-4" />
+            </button>
+          ) : null}
         </>
       )}
 
-      {/* ── Connected: compact hero ── */}
-      {isConnected && (
+      {/* ── Compact hero (connected, has pots or still loading) ── */}
+      {showCompactHero && (
         <div
           className="overflow-hidden rounded-3xl"
           style={{
@@ -312,11 +333,9 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
         >
           <div className="h-1 w-full" style={{ background: 'var(--brand)' }} />
           <div className="flex items-center gap-4 px-5 py-4">
-            {/* Illustration — compact size */}
             <div className="shrink-0">
               <RoscaIllustration size={80} />
             </div>
-            {/* Text */}
             <div className="min-w-0">
               <h1
                 className="display text-lg font-bold leading-tight"
@@ -335,8 +354,8 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
         </div>
       )}
 
-      {/* ── Connected: Create pot button ── */}
-      {isConnected && isDeployed && (
+      {/* ── Create pot button (compact-hero state only) ── */}
+      {showCompactHero && isDeployed && (
         <button
           onClick={onCreatePot}
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-all hover:scale-[1.01] active:scale-[0.99]"
@@ -347,8 +366,8 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
         </button>
       )}
 
-      {/* My Pots */}
-      {isConnected && (
+      {/* ── My Pots ── */}
+      {isConnected && hasPots && (
         <div>
           <h2
             className="mb-3 text-xs font-semibold uppercase tracking-widest"
@@ -356,20 +375,10 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
           >
             My Pots
           </h2>
-
           {isLoading ? (
             <p className="text-sm" style={{ color: 'var(--subtle)' }}>
               Scanning pots…
             </p>
-          ) : myPotIds.length === 0 ? (
-            <div
-              className="rounded-2xl p-4 text-center text-sm"
-              style={{ background: 'var(--surface-muted)', color: 'var(--subtle)' }}
-            >
-              You are not a member of any pot yet.
-              <br />
-              Create one or ask a friend to add you.
-            </div>
           ) : (
             <div className="flex flex-col gap-2">
               {myPotIds.map((id) => (
