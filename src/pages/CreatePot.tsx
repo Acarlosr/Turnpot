@@ -1,78 +1,80 @@
 import { useState } from 'react'
 import { useAccount, useWriteContract } from 'wagmi'
-import { parseUnits } from 'viem'
+import { parseUnits, decodeEventLog } from 'viem'
 import { Plus, Trash2, ChevronLeft, Info } from 'lucide-react'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { useActiveChainConfig, arcTestnet, arcMainnet } from '@/lib/chain'
 import { fmtUsdc } from '@/lib/format'
 import { useTxWatcher } from '@/hooks/useTxWatcher'
+import { useI18n } from '@/i18n'
 import TxButton from '@/components/TxButton'
 import ExplorerLink from '@/components/ExplorerLink'
 import { toast } from 'sonner'
-
-const DURATION_PRESETS = [
-  { label: '2 min (demo)', seconds: 120 },
-  { label: '1 day', seconds: 86400 },
-  { label: '1 week', seconds: 604800 },
-  { label: '1 month', seconds: 2592000 },
-]
 
 interface CreatePotProps {
   onBack: () => void
   onCreated?: (potId: bigint) => void
 }
 
-export default function CreatePot({ onBack }: CreatePotProps) {
+export default function CreatePot({ onBack, onCreated }: CreatePotProps) {
   const { address, chainId } = useAccount()
   const { turnpotAddress, chainId: activeChainId, isDeployed } = useActiveChainConfig()
-  // Wrong chain: not on either Arc chain
+  const { t } = useI18n()
   const wrongChain = chainId !== arcTestnet.id && chainId !== arcMainnet.id
 
-  // Members — creator is always first
   const [members, setMembers] = useState<string[]>([address ?? ''])
   const [contribution, setContribution] = useState('')
-  const [durationSeconds, setDurationSeconds] = useState<number>(DURATION_PRESETS[0].seconds)
+  const [durationSeconds, setDurationSeconds] = useState<number>(120)
+
+  const DURATION_PRESETS = [
+    { label: t('create.duration.demo'),   seconds: 120 },
+    { label: t('create.duration.1day'),   seconds: 86400 },
+    { label: t('create.duration.1week'),  seconds: 604800 },
+    { label: t('create.duration.1month'), seconds: 2592000 },
+  ]
 
   const { writeContract, data: hash, isPending, reset } = useWriteContract()
   const { isConfirming, isSuccess, isTimeout } = useTxWatcher(hash, {
-    onSuccess: () => { toast.success('Pot created!') },
-    onTimeout: () => { toast.warning('Transaction submitted — check the explorer for confirmation') },
-    onRevert:  () => { toast.error('Transaction reverted on chain') },
+    onSuccess: (receipt) => {
+      toast.success(t('toast.potCreated'))
+      // Parse PotCreated event to get the new pot ID, then navigate after 600ms
+      try {
+        for (const log of receipt.logs) {
+          try {
+            const decoded = decodeEventLog({ abi: TURNPOT_ABI, ...log })
+            if (decoded.eventName === 'PotCreated') {
+              const potId = (decoded.args as { potId: bigint }).potId
+              setTimeout(() => onCreated?.(potId), 600)
+              return
+            }
+          } catch { /* not this event */ }
+        }
+      } catch { /* fallback: no navigation */ }
+    },
+    onTimeout: () => { toast.warning(t('toast.txTimeout')) },
+    onRevert:  () => { toast.error(t('toast.txReverted')) },
   })
 
-  // Validation
   const validMembers = members.filter((m) => m.trim().length > 0)
-  const hasDuplicates =
-    new Set(validMembers.map((m) => m.toLowerCase())).size < validMembers.length
+  const hasDuplicates = new Set(validMembers.map((m) => m.toLowerCase())).size < validMembers.length
   const hasZeroAddr = validMembers.some((m) => m === '0x0000000000000000000000000000000000000000')
   const memberCountOk = validMembers.length >= 2 && validMembers.length <= 10
   const contribNum = parseFloat(contribution)
   const contribOk = !isNaN(contribNum) && contribNum > 0 && contribNum <= 1
 
-  const canSubmit =
-    !wrongChain &&
-    isDeployed &&
-    memberCountOk &&
-    !hasDuplicates &&
-    !hasZeroAddr &&
-    contribOk
+  const canSubmit = !wrongChain && isDeployed && memberCountOk && !hasDuplicates && !hasZeroAddr && contribOk
 
-  // Preview
   const contribWei = contribOk ? parseUnits(contribution, 18) : 0n
   const totalPot = contribWei * BigInt(validMembers.length)
 
   function addMember() {
     if (members.length < 10) setMembers([...members, ''])
   }
-
   function removeMember(i: number) {
     setMembers(members.filter((_, idx) => idx !== i))
   }
-
   function updateMember(i: number, val: string) {
-    const next = [...members]
-    next[i] = val
-    setMembers(next)
+    const next = [...members]; next[i] = val; setMembers(next)
   }
 
   function handleCreate() {
@@ -82,32 +84,22 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         address: turnpotAddress as `0x${string}`,
         abi: TURNPOT_ABI,
         functionName: 'createPot',
-        args: [
-          validMembers as `0x${string}`[],
-          parseUnits(contribution, 18),
-          BigInt(durationSeconds),
-        ],
+        args: [validMembers as `0x${string}`[], parseUnits(contribution, 18), BigInt(durationSeconds)],
         chainId: activeChainId,
       },
       {
         onError: (err) => {
           const msg = err.message
-          if (msg.includes('CreatorNotMember')) toast.error('You must be listed as a member')
-          else if (msg.includes('InvalidMembers')) toast.error('Invalid member list')
-          else if (msg.includes('InvalidContribution')) toast.error('Invalid contribution amount')
-          else if (msg.includes('InvalidDuration')) toast.error('Round duration too short (min 60s)')
-          else if (msg.includes('user rejected')) {/* silent */}
-          else toast.error('Transaction failed')
+          if (msg.includes('CreatorNotMember'))    toast.error(t('error.creatorNotMember'))
+          else if (msg.includes('InvalidMembers')) toast.error(t('error.invalidMembers'))
+          else if (msg.includes('InvalidContribution')) toast.error(t('error.invalidContribution'))
+          else if (msg.includes('InvalidDuration'))    toast.error(t('error.invalidDuration'))
+          else if (msg.includes('user rejected')) { /* silent */ }
+          else toast.error(t('error.txFailed'))
           reset()
         },
       },
     )
-  }
-
-  // Navigate after success
-  if (isSuccess) {
-    // Give user a moment to see success, then go home
-    setTimeout(() => onBack(), 1500)
   }
 
   return (
@@ -117,28 +109,26 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         <button
           onClick={onBack}
           className="flex size-9 items-center justify-center rounded-xl transition-all hover:bg-black/5 dark:hover:bg-white/5"
+          aria-label="Back"
         >
           <ChevronLeft className="size-5" style={{ color: 'var(--ink)' }} />
         </button>
         <h1 className="display text-xl font-bold" style={{ color: 'var(--ink)' }}>
-          Create a Pot
+          {t('create.title')}
         </h1>
       </div>
 
       {/* Members */}
       <div
         className="rounded-3xl p-5 flex flex-col gap-3"
-        style={{
-          background: 'var(--surface-strong)',
-          border: '1px solid var(--border)',
-        }}
+        style={{ background: 'var(--surface-strong)', border: '1px solid var(--border)' }}
       >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
-            Members ({validMembers.length}/10)
+            {t('create.members.title', { n: validMembers.length })}
           </h2>
           <span className="text-xs" style={{ color: 'var(--muted)' }}>
-            Payout order = list order
+            {t('create.members.order')}
           </span>
         </div>
 
@@ -156,18 +146,11 @@ export default function CreatePot({ onBack }: CreatePotProps) {
               onChange={(e) => updateMember(i, e.target.value)}
               placeholder="0x…"
               className="mono min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2"
-              style={{
-                background: 'var(--surface-muted)',
-                borderColor: 'var(--border)',
-                color: 'var(--ink)',
-              }}
+              style={{ background: 'var(--surface-muted)', borderColor: 'var(--border)', color: 'var(--ink)' }}
             />
             {i === 0 ? (
-              <span
-                className="text-xs font-medium px-2"
-                style={{ color: 'var(--muted)' }}
-              >
-                you
+              <span className="text-xs font-medium px-2" style={{ color: 'var(--muted)' }}>
+                {t('create.members.you')}
               </span>
             ) : (
               <button
@@ -182,14 +165,10 @@ export default function CreatePot({ onBack }: CreatePotProps) {
         ))}
 
         {hasDuplicates && (
-          <p className="text-xs" style={{ color: 'var(--danger)' }}>
-            Duplicate addresses are not allowed.
-          </p>
+          <p className="text-xs" style={{ color: 'var(--danger)' }}>{t('create.members.dupError')}</p>
         )}
         {!memberCountOk && validMembers.length > 0 && (
-          <p className="text-xs" style={{ color: 'var(--danger)' }}>
-            Pots need between 2 and 10 members.
-          </p>
+          <p className="text-xs" style={{ color: 'var(--danger)' }}>{t('create.members.countError')}</p>
         )}
 
         {members.length < 10 && (
@@ -199,7 +178,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
             style={{ color: 'var(--accent-hover)' }}
           >
             <Plus className="size-4" />
-            Add member
+            {t('create.members.addMember')}
           </button>
         )}
       </div>
@@ -207,15 +186,11 @@ export default function CreatePot({ onBack }: CreatePotProps) {
       {/* Contribution */}
       <div
         className="rounded-3xl p-5"
-        style={{
-          background: 'var(--surface-strong)',
-          border: '1px solid var(--border)',
-        }}
+        style={{ background: 'var(--surface-strong)', border: '1px solid var(--border)' }}
       >
         <h2 className="mb-3 text-sm font-semibold" style={{ color: 'var(--ink)' }}>
-          Contribution per member
+          {t('create.contribution.title')}
         </h2>
-        {/* Input with inset USDC suffix */}
         <div className="relative rounded-2xl" style={{ background: 'var(--surface-muted)' }}>
           <input
             inputMode="decimal"
@@ -235,31 +210,18 @@ export default function CreatePot({ onBack }: CreatePotProps) {
             USDC
           </span>
         </div>
-
-        {/* Helper / error text */}
         {!contribOk && contribution !== '' ? (
-          <p className="mt-1.5 text-xs" style={{ color: 'var(--danger)' }}>
-            Must be between 0 and 1 USDC.
-          </p>
+          <p className="mt-1.5 text-xs" style={{ color: 'var(--danger)' }}>{t('create.contribution.error')}</p>
         ) : (
-          <p className="mt-1.5 text-xs" style={{ color: 'var(--subtle)' }}>
-            Maximum 1 USDC per member per round.
-          </p>
+          <p className="mt-1.5 text-xs" style={{ color: 'var(--subtle)' }}>{t('create.contribution.helper')}</p>
         )}
-
-        {/* Preview row */}
         {contribOk && memberCountOk && (
           <div
             className="mt-3 flex items-center justify-between rounded-xl px-3 py-2"
             style={{ background: 'var(--overlay-preview)' }}
           >
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>
-              Total pot per round
-            </span>
-            <span
-              className="text-sm font-bold tabular-nums"
-              style={{ color: 'var(--ink)' }}
-            >
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>{t('create.contribution.totalLabel')}</span>
+            <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--ink)' }}>
               {fmtUsdc(totalPot)} USDC
             </span>
           </div>
@@ -269,13 +231,10 @@ export default function CreatePot({ onBack }: CreatePotProps) {
       {/* Duration */}
       <div
         className="rounded-3xl p-5"
-        style={{
-          background: 'var(--surface-strong)',
-          border: '1px solid var(--border)',
-        }}
+        style={{ background: 'var(--surface-strong)', border: '1px solid var(--border)' }}
       >
         <h2 className="mb-3 text-sm font-semibold" style={{ color: 'var(--ink)' }}>
-          Round duration
+          {t('create.duration.title')}
         </h2>
         <div className="grid grid-cols-2 gap-2">
           {DURATION_PRESETS.map((p) => (
@@ -284,12 +243,8 @@ export default function CreatePot({ onBack }: CreatePotProps) {
               onClick={() => setDurationSeconds(p.seconds)}
               className="rounded-xl py-2.5 text-sm font-medium transition-all hover:scale-[1.01]"
               style={{
-                background:
-                  durationSeconds === p.seconds
-                    ? 'var(--selected-bg)'
-                    : 'var(--surface-muted)',
-                color:
-                  durationSeconds === p.seconds ? 'var(--selected-text)' : 'var(--ink-2)',
+                background: durationSeconds === p.seconds ? 'var(--selected-bg)' : 'var(--surface-muted)',
+                color: durationSeconds === p.seconds ? 'var(--selected-text)' : 'var(--ink-2)',
                 border: `1px solid ${durationSeconds === p.seconds ? 'transparent' : 'var(--border)'}`,
               }}
             >
@@ -297,16 +252,12 @@ export default function CreatePot({ onBack }: CreatePotProps) {
             </button>
           ))}
         </div>
-
         <div
           className="mt-3 flex items-start gap-1.5 rounded-xl px-3 py-2.5"
           style={{ background: 'var(--overlay-info)' }}
         >
           <Info className="mt-0.5 size-3.5 shrink-0" style={{ color: 'var(--subtle)' }} />
-          <p className="text-xs" style={{ color: 'var(--subtle)' }}>
-            If not all members pay before the deadline, anyone can cancel the round.
-            Payers are refunded; non-payers accumulate a default count.
-          </p>
+          <p className="text-xs" style={{ color: 'var(--subtle)' }}>{t('create.duration.info')}</p>
         </div>
       </div>
 
@@ -316,12 +267,12 @@ export default function CreatePot({ onBack }: CreatePotProps) {
           className="rounded-2xl px-4 py-3 text-sm font-medium"
           style={{ background: 'rgba(39,117,202,0.07)', color: 'var(--brand)' }}
         >
-          TurnPot is not deployed on this network yet.
+          {t('create.notDeployed')}
         </div>
       )}
 
       <TxButton
-        label="Create pot"
+        label={t('create.submit')}
         disabled={!canSubmit}
         isPending={isPending}
         isConfirming={isConfirming}
@@ -330,12 +281,9 @@ export default function CreatePot({ onBack }: CreatePotProps) {
       />
 
       {isSuccess && hash && (
-        <div
-          className="rounded-2xl p-4 text-center"
-          style={{ background: 'rgba(26,128,71,0.08)' }}
-        >
+        <div className="rounded-2xl p-4 text-center" style={{ background: 'rgba(26,128,71,0.08)' }}>
           <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--success)' }}>
-            Pot created!
+            {t('create.success')}
           </p>
           <ExplorerLink hash={hash} />
         </div>
@@ -347,7 +295,7 @@ export default function CreatePot({ onBack }: CreatePotProps) {
           style={{ background: 'rgba(39,117,202,0.07)', border: '1px solid rgba(39,117,202,0.15)' }}
         >
           <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--brand)' }}>
-            Submitted — still waiting for confirmation
+            {t('create.timeout')}
           </p>
           <ExplorerLink hash={hash} />
         </div>

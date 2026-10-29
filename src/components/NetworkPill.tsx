@@ -10,11 +10,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { Check, ChevronDown } from 'lucide-react'
 import { arcTestnet, arcMainnet, CHAIN_CONFIGS } from '@/lib/chain'
-
-const NETWORKS = [
-  { id: arcMainnet.id, label: 'Arc Mainnet' },
-  { id: arcTestnet.id, label: 'Arc Testnet' },
-]
+import { useI18n } from '@/i18n'
 
 type DotColor = 'green' | 'amber' | 'red'
 
@@ -27,8 +23,14 @@ const DOT_STYLE: Record<DotColor, string> = {
 export default function NetworkPill() {
   const { chainId, isConnected } = useAccount()
   const { switchChain } = useSwitchChain()
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  const NETWORKS = [
+    { id: arcMainnet.id, label: `Arc ${t('network.mainnet')}` },
+    { id: arcTestnet.id, label: `Arc ${t('network.testnet')}` },
+  ]
 
   // Close on outside click
   useEffect(() => {
@@ -47,8 +49,8 @@ export default function NetworkPill() {
   const isKnown   = isMainnet || isTestnet
 
   const dotColor: DotColor = isMainnet ? 'green' : isTestnet ? 'amber' : 'red'
-  const label = isMainnet ? 'Mainnet' : isTestnet ? 'Testnet' : 'Wrong network'
-  const tooltip = isTestnet ? 'Test USDC only, no real funds' : undefined
+  const label = isMainnet ? t('network.mainnet') : isTestnet ? t('network.testnet') : t('network.wrong')
+  const tooltip = isTestnet ? t('network.testnetTooltip') : undefined
 
   function handleSwitch(toChainId: number) {
     setOpen(false)

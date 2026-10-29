@@ -1,42 +1,35 @@
-import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectKitButton } from 'connectkit'
-import { AlertTriangle, Rocket } from 'lucide-react'
+import { AlertTriangle, Rocket, Home } from 'lucide-react'
 import { TokenUSDC } from '@web3icons/react'
 import { useActiveChainConfig, arcMainnet } from '@/lib/chain'
 import { fmtAddr } from '@/lib/format'
+import { useRouter } from '@/hooks/useRouter'
+import { useI18n } from '@/i18n'
 import NetworkPill from '@/components/NetworkPill'
 import ThemeToggle from '@/components/ThemeToggle'
 import HeaderBalance from '@/components/HeaderBalance'
-import Home from '@/pages/Home'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
+import HomeView from '@/pages/Home'
 import CreatePot from '@/pages/CreatePot'
 import PotPage from '@/pages/PotPage'
 import DeployPage from '@/pages/DeployPage'
 
-// /deploy is a hidden route — only reachable by direct URL, not linked in the nav.
-const IS_DEPLOY_ROUTE = typeof window !== 'undefined' && window.location.pathname === '/deploy'
-
-type Page =
-  | { name: 'home' }
-  | { name: 'create' }
-  | { name: 'pot'; potId: bigint }
-
 export default function App() {
-  const [page, setPage] = useState<Page>({ name: 'home' })
+  const { route, navigate, goHome } = useRouter()
   const { isConnected, chainId } = useAccount()
   const { isDeployed, isKnown } = useActiveChainConfig()
+  const { t } = useI18n()
 
-  // Show a "wrong network" hint when on an unknown chain and connected
-  const showWrongNetwork = isConnected && !isKnown && !IS_DEPLOY_ROUTE
+  const isDeployRoute = route.name === 'deploy'
 
-  // Show "not deployed on mainnet yet" when on mainnet but no address
-  const showNotDeployed = isConnected && chainId === arcMainnet.id && !isDeployed && !IS_DEPLOY_ROUTE
+  // Show banners only outside the deploy page
+  const showWrongNetwork = isConnected && !isKnown && !isDeployRoute
+  const showNotDeployed  = isConnected && chainId === arcMainnet.id && !isDeployed && !isDeployRoute
 
   return (
-    <div
-      className="min-h-dvh"
-      style={{ background: 'var(--bg-gradient)' }}
-    >
+    <div className="min-h-dvh" style={{ background: 'var(--bg-gradient)' }}>
+
       {/* ── Top nav ── */}
       <header
         className="sticky top-0 z-30 flex items-center justify-between gap-2 px-4 py-3"
@@ -47,33 +40,47 @@ export default function App() {
           borderBottom: '1px solid var(--border)',
         }}
       >
-        {/* Left: logo + wordmark */}
-        <button
-          onClick={() => setPage({ name: 'home' })}
-          className="flex min-w-0 shrink items-center gap-2"
-        >
-          <TokenUSDC variant="branded" size={22} />
-          <span className="display text-base font-bold" style={{ color: 'var(--ink)' }}>
-            TurnPot
-          </span>
-        </button>
+        {/* Left: logo + wordmark (home link) + home icon */}
+        <div className="flex min-w-0 shrink items-center gap-1">
+          <button
+            onClick={goHome}
+            className="flex min-w-0 shrink items-center gap-2"
+            aria-label="TurnPot — Home"
+          >
+            <TokenUSDC variant="branded" size={22} />
+            <span className="display text-base font-bold" style={{ color: 'var(--ink)' }}>
+              TurnPot
+            </span>
+          </button>
 
-        {/* Right: network pill | theme toggle | balance | wallet button */}
+          {/* Home icon button — shown when not already on home */}
+          {route.name !== 'home' && (
+            <button
+              onClick={goHome}
+              aria-label="Home"
+              className="ml-1 flex size-8 items-center justify-center rounded-xl transition-all hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <Home className="size-4" style={{ color: 'var(--ink)' }} />
+            </button>
+          )}
+        </div>
+
+        {/* Right: language | network pill | theme toggle | balance | wallet */}
         <div className="flex shrink-0 items-center gap-2">
+          <LanguageSwitcher />
           <NetworkPill />
           <ThemeToggle />
           <HeaderBalance />
-          {/* ConnectKit wallet button — custom render to keep header compact */}
           <ConnectKitButton.Custom>
-            {({ isConnected, show, address, ensName }) => {
-              if (!isConnected) {
+            {({ isConnected: ck_connected, show, address, ensName }) => {
+              if (!ck_connected) {
                 return (
                   <button
                     onClick={show}
                     className="rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                     style={{ background: 'var(--brand)' }}
                   >
-                    Connect
+                    {t('header.connect')}
                   </button>
                 )
               }
@@ -87,9 +94,8 @@ export default function App() {
                     borderColor: 'var(--border-strong)',
                     color: 'var(--ink)',
                   }}
-                  aria-label="Wallet settings"
+                  aria-label={t('header.walletLabel')}
                 >
-                  {/* Avatar circle */}
                   <span
                     className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
                     style={{ background: 'var(--brand)' }}
@@ -97,7 +103,6 @@ export default function App() {
                   >
                     {(address ?? '0x').slice(2, 4).toUpperCase()}
                   </span>
-                  {/* Address — hidden on mobile */}
                   <span className="mono hidden sm:inline">{label}</span>
                 </button>
               )
@@ -113,7 +118,7 @@ export default function App() {
           style={{ background: 'rgba(186,43,76,0.08)', color: 'var(--danger)', borderBottom: '1px solid rgba(186,43,76,0.12)' }}
         >
           <AlertTriangle className="size-4 shrink-0" />
-          <span>TurnPot runs on Arc Mainnet and Arc Testnet — please switch using the network pill.</span>
+          <span>{t('banner.wrongNetwork')}</span>
         </div>
       )}
 
@@ -125,43 +130,41 @@ export default function App() {
         >
           <span className="flex items-center gap-1.5">
             <Rocket className="size-4 shrink-0" />
-            TurnPot is not deployed on Arc Mainnet yet.
+            {t('banner.notDeployed')}
           </span>
           <a
             href="/deploy"
+            onClick={(e) => { e.preventDefault(); navigate({ name: 'deploy' }) }}
             className="rounded-lg px-3 py-1 text-xs font-semibold text-white"
             style={{ background: 'var(--brand)' }}
           >
-            Deploy now
+            {t('banner.deployNow')}
           </a>
         </div>
       )}
 
       {/* ── Main content ── */}
       <main className="mx-auto w-full max-w-lg px-4 py-6 pb-24 sm:px-6">
-        {IS_DEPLOY_ROUTE ? (
-          <DeployPage onBack={() => window.location.assign('/')} />
-        ) : (
-          <>
-            {page.name === 'home' && (
-              <Home
-                onSelectPot={(id) => setPage({ name: 'pot', potId: id })}
-                onCreatePot={() => setPage({ name: 'create' })}
-              />
-            )}
-            {page.name === 'create' && (
-              <CreatePot
-                onBack={() => setPage({ name: 'home' })}
-                onCreated={(id) => setPage({ name: 'pot', potId: id })}
-              />
-            )}
-            {page.name === 'pot' && (
-              <PotPage
-                potId={page.potId}
-                onBack={() => setPage({ name: 'home' })}
-              />
-            )}
-          </>
+        {route.name === 'home' && (
+          <HomeView
+            onSelectPot={(id) => navigate({ name: 'pot', potId: id })}
+            onCreatePot={() => navigate({ name: 'create' })}
+          />
+        )}
+        {route.name === 'create' && (
+          <CreatePot
+            onBack={goHome}
+            onCreated={(id) => navigate({ name: 'pot', potId: id })}
+          />
+        )}
+        {route.name === 'pot' && (
+          <PotPage
+            potId={route.potId}
+            onBack={goHome}
+          />
+        )}
+        {route.name === 'deploy' && (
+          <DeployPage onBack={goHome} />
         )}
       </main>
     </div>

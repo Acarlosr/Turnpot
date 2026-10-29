@@ -7,6 +7,7 @@ Built with [Arc Studio](https://studio.arc.io)
 **Live app:** https://turnpot.vercel.app
 **Mainnet contract:** https://explorer.arc.io/address/0xc2e7c67334cb6fce6f2e3809000d804481d12bf3
 **Deploy tx:** https://explorer.arc.io/tx/0x28f07c32da1c891b868fe385b9fdf3452a2cf61f2c419fa457eefde19498bc1e
+**Verified source (Sourcify — exact match):** https://sourcify.dev/repository/contracts/full_match/5042/0xC2e7C67334cb6fCe6f2E3809000D804481d12bF3/
 **Arc Studio project:** https://studio.arc.io/app/9b0de8d7-a57f-4024-b081-b8fdcf60ac70
 
 ---
@@ -26,6 +27,8 @@ Known as *consórcio* in Brazil, *tanda* in Mexico, *susu* in West Africa.
 - **Contract**: Solidity 0.8.28 + Foundry, deployed on Arc Testnet
 - **Chain**: Arc Testnet (5042002) and Arc Mainnet (5042) — network-aware at runtime; the wallet's connected chain determines which contract and explorer are used
 - **Theming**: light/dark mode with system-preference default, persisted to `localStorage`
+- **i18n**: English, Português (Brasil), Español — browser-detected with `localStorage` persistence, switchable via the flag picker in the header
+- **Routing**: client-side URL routing (`/`, `/create`, `/pot/:id`, `/deploy`) with `vercel.json` SPA rewrite for deep-link refreshes
 
 ---
 

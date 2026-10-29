@@ -28,6 +28,7 @@ import {
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { arcMainnet } from '@/lib/chain'
 import { fmtAddr } from '@/lib/format'
+import { useI18n } from '@/i18n'
 
 // ── Artifact ─────────────────────────────────────────────────────────────────
 // Vite resolves JSON imports at build time; the bytecode is the exact object
@@ -93,6 +94,7 @@ export default function DeployPage({ onBack }: DeployPageProps) {
   const { address, isConnected, chainId } = useAccount()
   const { switchChain } = useSwitchChain()
   const { data: walletClient } = useWalletClient()
+  const { t } = useI18n()
 
   // Balance on the active chain (shows USDC on Arc mainnet)
   const { data: balanceData } = useBalance({ address, chainId: DEPLOY_CHAIN_ID })
@@ -183,9 +185,9 @@ export default function DeployPage({ onBack }: DeployPageProps) {
         </button>
         <div className="min-w-0">
           <h1 className="display truncate text-xl font-bold" style={{ color: 'var(--ink)' }}>
-            Deploy TurnPot
+            {t('deploy.title')}
           </h1>
-          <p className="text-xs" style={{ color: 'var(--subtle)' }}>Arc Mainnet (chain ID 5042)</p>
+          <p className="text-xs" style={{ color: 'var(--subtle)' }}>{t('deploy.subtitle')}</p>
         </div>
       </div>
 
@@ -196,8 +198,7 @@ export default function DeployPage({ onBack }: DeployPageProps) {
       >
         <AlertTriangle className="mt-0.5 size-4 shrink-0" style={{ color: 'var(--danger)' }} />
         <p className="text-xs leading-relaxed" style={{ color: 'var(--danger)' }}>
-          This deploys to <strong>Arc Mainnet with real funds</strong>. The transaction is
-          irreversible. Review the contract source and audit report before proceeding.
+          {t('deploy.warning')}
         </p>
       </div>
 
@@ -207,12 +208,12 @@ export default function DeployPage({ onBack }: DeployPageProps) {
         style={{ background: 'var(--surface-strong)', border: '1px solid var(--border)' }}
       >
         <h2 className="mb-3 text-sm font-semibold" style={{ color: 'var(--ink)' }}>
-          Deploying wallet
+          {t('deploy.walletTitle')}
         </h2>
 
         {!isConnected ? (
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
-            Connect your wallet (top right) to continue.
+            {t('deploy.connectFirst')}
           </p>
         ) : (
           <div>
@@ -228,7 +229,7 @@ export default function DeployPage({ onBack }: DeployPageProps) {
             <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--border)' }}>
               <span className="text-xs" style={{ color: 'var(--muted)' }}>Active chain</span>
               <span className="text-xs font-medium" style={{ color: onMainnet ? 'var(--success)' : 'var(--danger)' }}>
-                {onMainnet ? 'Arc Mainnet ✓' : `Chain ${chainId ?? '?'} (wrong)`}
+                {onMainnet ? t('deploy.chainCorrect') : t('deploy.chainWrong', { id: chainId ?? '?' })}
               </span>
             </div>
             <div className="flex items-center justify-between py-2.5">
@@ -265,7 +266,7 @@ export default function DeployPage({ onBack }: DeployPageProps) {
           className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-all hover:scale-[1.01] active:scale-[0.99]"
           style={{ background: 'var(--brand)', color: '#fff' }}
         >
-          Switch to Arc Mainnet
+          {t('deploy.switchChain')}
         </button>
       )}
 
@@ -277,12 +278,12 @@ export default function DeployPage({ onBack }: DeployPageProps) {
           style={{ background: 'var(--brand)' }}
         >
           {stage === 'signing' && (
-            <><Loader2 className="size-4 animate-spin" /> Confirm in wallet…</>
+            <><Loader2 className="size-4 animate-spin" /> {t('deploy.signing')}</>
           )}
           {stage === 'confirming' && (
-            <><Loader2 className="size-4 animate-spin" /> Waiting for confirmation…</>
+            <><Loader2 className="size-4 animate-spin" /> {t('deploy.confirming')}</>
           )}
-          {stage === 'idle' && 'Deploy TurnPot to Arc Mainnet'}
+          {stage === 'idle' && t('deploy.button')}
         </button>
       )}
 
@@ -333,7 +334,7 @@ export default function DeployPage({ onBack }: DeployPageProps) {
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-5 shrink-0" style={{ color: 'var(--success)' }} />
             <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>
-              Deployed successfully
+              {t('deploy.success')}
             </p>
           </div>
 
@@ -391,7 +392,7 @@ export default function DeployPage({ onBack }: DeployPageProps) {
               style={{ background: 'rgba(26,128,71,0.06)', border: '1px solid rgba(26,128,71,0.16)' }}
             >
               <p className="mb-2 text-xs font-semibold" style={{ color: 'var(--success)' }}>
-                Sanity check passed
+                {t('deploy.sanityPassed')}
               </p>
               <div className="flex flex-col gap-1">
                 <div className="flex justify-between text-xs">

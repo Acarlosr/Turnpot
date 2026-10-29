@@ -8,11 +8,13 @@ import { fmtUsdc } from '@/lib/format'
 import TxButton from './TxButton'
 import ExplorerLink from './ExplorerLink'
 import { toast } from 'sonner'
+import { useI18n } from '@/i18n'
 
 export default function WalletPanel() {
   const { address } = useAccount()
   const { turnpotAddress, chainId: activeChainId } = useActiveChainConfig()
   const { data: balance, refetch } = useWithdrawableBalance(address)
+  const { t } = useI18n()
 
   const {
     writeContract,
@@ -23,10 +25,10 @@ export default function WalletPanel() {
   const { isConfirming, isSuccess, isTimeout } = useTxWatcher(hash, {
     onSuccess: () => {
       void refetch()
-      toast.success('Withdrawn successfully')
+      toast.success(t('toast.withdrawn'))
     },
-    onTimeout: () => { toast.warning('Withdraw tx submitted — check the explorer') },
-    onRevert:  () => { toast.error('Withdraw transaction reverted') },
+    onTimeout: () => { toast.warning(t('toast.withdrawTimeout')) },
+    onRevert:  () => { toast.error(t('toast.withdrawReverted')) },
   })
 
   const handleWithdraw = () => {
@@ -39,7 +41,7 @@ export default function WalletPanel() {
       },
       {
         onError: (err) => {
-          toast.error(err.message.includes('NothingToWithdraw') ? 'Nothing to withdraw' : 'Withdrawal failed')
+          toast.error(err.message.includes('NothingToWithdraw') ? t('error.nothingToWithdraw') : t('error.withdrawFailed'))
           reset()
         },
       },
@@ -65,7 +67,7 @@ export default function WalletPanel() {
           <Wallet className="size-4" style={{ color: 'var(--accent)' }} />
         </div>
         <span className="text-sm font-semibold" style={{ color: 'var(--muted)' }}>
-          Withdrawable Balance
+          {t('wallet.title')}
         </span>
       </div>
 
@@ -82,7 +84,7 @@ export default function WalletPanel() {
       </div>
 
       <TxButton
-        label="Withdraw"
+        label={t('wallet.withdraw')}
         disabled={!hasBalance}
         isPending={isPending}
         isConfirming={isConfirming}

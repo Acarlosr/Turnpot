@@ -9,6 +9,7 @@ import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { useActiveChainConfig, explorerTx } from '@/lib/chain'
 import { fmtUsdc, fmtAddr } from '@/lib/format'
 import { ExternalLink } from 'lucide-react'
+import { useI18n } from '@/i18n'
 
 interface HistoryEntry {
   type: 'RoundClosed' | 'RoundCancelled' | 'Withdrawn'
@@ -32,6 +33,7 @@ export default function PotHistory({ potId }: { potId: bigint }) {
   const client = usePublicClient({ chainId: activeChainId })
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const { t } = useI18n()
 
   useEffect(() => {
     if (!client) return
@@ -139,7 +141,7 @@ export default function PotHistory({ potId }: { potId: bigint }) {
   if (entries.length === 0) {
     return (
       <p className="text-sm" style={{ color: 'var(--subtle)' }}>
-        No events yet.
+        {t('history.empty')}
       </p>
     )
   }
