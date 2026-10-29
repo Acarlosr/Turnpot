@@ -1,6 +1,6 @@
 import { useAccount } from 'wagmi'
 import { ConnectKitButton } from 'connectkit'
-import { ArrowRight, Users, Wallet } from 'lucide-react'
+import { ArrowRight, Users, Wallet, History } from 'lucide-react'
 import { useMyPots } from '@/hooks/useMyPots'
 import { usePot } from '@/hooks/usePot'
 import { fmtUsdc } from '@/lib/format'
@@ -64,6 +64,15 @@ function PotRow({ potId, onSelect, address }: PotRowProps) {
           {myIndex >= 0 && ` · ${t('home.pot.you', { n: myIndex + 1 })}`}
           <span className="sm:hidden"> · {fmtUsdc(contribution)} USDC</span>
         </p>
+        {/* View history shortcut — same action as clicking the row */}
+        <span
+          className="mt-1 inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70"
+          style={{ color: 'var(--brand)' }}
+          aria-hidden="true"
+        >
+          <History className="size-3" />
+          {t('mypots.viewHistory')}
+        </span>
       </div>
 
       <div className="hidden shrink-0 text-right sm:block">

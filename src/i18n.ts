@@ -92,6 +92,15 @@ const dict: Record<Locale, Record<string, string>> = {
     // ── History ──
     'history.title': 'History',
     'history.empty': 'No events yet.',
+    'history.loading': 'Loading history…',
+    'history.error': 'Could not load history.',
+    'history.retry': 'Retry',
+    'history.viewArcscan': 'View on ArcScan',
+    'history.contributed': 'Round {round} · {addr} contributed {amount} USDC',
+    'history.closed': 'Round {round} closed · {amount} USDC to {addr}',
+    'history.cancelled': 'Round {round} cancelled, refunds issued',
+    'history.withdrawn': '{addr} withdrew {amount} USDC',
+    'mypots.viewHistory': 'View history',
 
     // ── Status labels ──
     'status.active': 'Active',
@@ -274,6 +283,15 @@ const dict: Record<Locale, Record<string, string>> = {
 
     'history.title': 'Histórico',
     'history.empty': 'Nenhum evento ainda.',
+    'history.loading': 'Carregando histórico…',
+    'history.error': 'Não foi possível carregar o histórico.',
+    'history.retry': 'Tentar novamente',
+    'history.viewArcscan': 'Ver no ArcScan',
+    'history.contributed': 'Rodada {round} · {addr} contribuiu {amount} USDC',
+    'history.closed': 'Rodada {round} encerrada · {amount} USDC para {addr}',
+    'history.cancelled': 'Rodada {round} cancelada, reembolsos emitidos',
+    'history.withdrawn': '{addr} sacou {amount} USDC',
+    'mypots.viewHistory': 'Ver histórico',
 
     'status.active': 'Ativo',
     'status.completed': 'Concluído',
@@ -448,6 +466,15 @@ const dict: Record<Locale, Record<string, string>> = {
 
     'history.title': 'Historial',
     'history.empty': 'Aún no hay eventos.',
+    'history.loading': 'Cargando historial…',
+    'history.error': 'No se pudo cargar el historial.',
+    'history.retry': 'Reintentar',
+    'history.viewArcscan': 'Ver en ArcScan',
+    'history.contributed': 'Ronda {round} · {addr} contribuyó {amount} USDC',
+    'history.closed': 'Ronda {round} cerrada · {amount} USDC para {addr}',
+    'history.cancelled': 'Ronda {round} cancelada, reembolsos emitidos',
+    'history.withdrawn': '{addr} retiró {amount} USDC',
+    'mypots.viewHistory': 'Ver historial',
 
     'status.active': 'Activo',
     'status.completed': 'Completado',

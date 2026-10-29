@@ -524,7 +524,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
         <h2 className="mb-3 text-sm font-semibold" style={{ color: 'var(--ink)' }}>
           {t('history.title')}
         </h2>
-        <PotHistory potId={potId} />
+        <PotHistory potId={potId} members={members} />
       </div>
     </div>
   )
