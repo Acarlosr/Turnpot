@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectKitButton } from 'connectkit'
 import { AlertTriangle, Rocket, Home } from 'lucide-react'
-import { TokenUSDC } from '@web3icons/react'
 import { useActiveChainConfig, arcMainnet } from '@/lib/chain'
+import TurnPotLogo from '@/components/TurnPotLogo'
 import { fmtAddr } from '@/lib/format'
 import { useRouter } from '@/hooks/useRouter'
 import { useI18n } from '@/i18n'
@@ -50,7 +50,7 @@ export default function App() {
             className="flex min-w-0 shrink items-center gap-2"
             aria-label="TurnPot — Home"
           >
-            <TokenUSDC variant="branded" size={22} />
+            <TurnPotLogo size={26} />
             <span className="display text-base font-bold" style={{ color: 'var(--ink)' }}>
               TurnPot
             </span>

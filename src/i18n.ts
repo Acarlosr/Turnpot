@@ -183,6 +183,14 @@ const dict: Record<Locale, Record<string, string>> = {
     'stats.totalUsdc': 'Total USDC',
     'stats.loading': 'Loading…',
     'stats.contract': 'Contract',
+
+    'pot.next.contribute': 'Your turn to contribute {amount} USDC',
+    'pot.next.waitingOthers': 'You paid. Waiting for {n} member',
+    'pot.next.waitingOthers_plural': 'You paid. Waiting for {n} members',
+    'pot.next.closeReady': 'Everyone paid. Close the round to release the pot',
+    'pot.next.withdraw': 'You received the pot. Withdraw {amount} USDC',
+    'pot.next.expired': 'Round expired. Cancel it to refund who paid',
+    'pot.next.completed': 'Pot completed. Everyone received once',
   },
 
   'pt-BR': {
@@ -341,6 +349,14 @@ const dict: Record<Locale, Record<string, string>> = {
     'stats.totalUsdc': 'Total USDC',
     'stats.loading': 'Carregando…',
     'stats.contract': 'Contrato',
+
+    'pot.next.contribute': 'Sua vez de contribuir {amount} USDC',
+    'pot.next.waitingOthers': 'Você pagou. Aguardando {n} membro',
+    'pot.next.waitingOthers_plural': 'Você pagou. Aguardando {n} membros',
+    'pot.next.closeReady': 'Todos pagaram. Feche a rodada para liberar o pote',
+    'pot.next.withdraw': 'Você recebeu o pote. Saque {amount} USDC',
+    'pot.next.expired': 'Rodada expirada. Cancele para reembolsar quem pagou',
+    'pot.next.completed': 'Pote completo. Todos receberam uma vez',
   },
 
   es: {
@@ -499,6 +515,14 @@ const dict: Record<Locale, Record<string, string>> = {
     'stats.totalUsdc': 'Total USDC',
     'stats.loading': 'Cargando…',
     'stats.contract': 'Contrato',
+
+    'pot.next.contribute': 'Tu turno de contribuir {amount} USDC',
+    'pot.next.waitingOthers': 'Pagaste. Esperando {n} miembro',
+    'pot.next.waitingOthers_plural': 'Pagaste. Esperando {n} miembros',
+    'pot.next.closeReady': 'Todos pagaron. Cierra la ronda para liberar el pot',
+    'pot.next.withdraw': 'Recibiste el pot. Retira {amount} USDC',
+    'pot.next.expired': 'Ronda expirada. Cancélala para reembolsar a quien pagó',
+    'pot.next.completed': 'Tanda completa. Todos recibieron una vez',
   },
 }
 

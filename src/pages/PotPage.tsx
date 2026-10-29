@@ -11,6 +11,7 @@ import {
   usePaidCount,
   useRoundPayments,
   useMembersDefaults,
+  useWithdrawableBalance,
 } from '@/hooks/usePot'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { useActiveChainConfig } from '@/lib/chain'
@@ -57,6 +58,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
     members,
   )
   const { data: defaultsData } = useMembersDefaults(members)
+  const { data: withdrawableRaw } = useWithdrawableBalance(address)
 
   const myMemberIndex = address
     ? members.findIndex((m) => m.toLowerCase() === address.toLowerCase())
@@ -219,6 +221,46 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
   // Pot is done when completed (1) or cancelled (2)
   const isDone = status === 1 || status === 2
 
+  // ── Next-step banner ───────────────────────────────────────────────────────
+  function nextStepBanner(): { msg: string; tone: 'info' | 'success' | 'warn' | 'neutral' } | null {
+    if (!isMember) return null
+    const withdrawable = withdrawableRaw ?? 0n
+    // 1. Completed
+    if (status === 1) return { msg: t('pot.next.completed'), tone: 'neutral' }
+    // 2. Active round checks
+    if (status === 0) {
+      // 2a. Expired — deadline passed but not all paid
+      if (isExpired && !allPaid) return { msg: t('pot.next.expired'), tone: 'warn' }
+      // 2b. You have withdrawable balance (received the pot this round)
+      if (withdrawable > 0n) return {
+        msg: t('pot.next.withdraw', { amount: fmtUsdc(withdrawable) }),
+        tone: 'success',
+      }
+      // 2c. All paid — can close
+      if (allPaid) return { msg: t('pot.next.closeReady'), tone: 'info' }
+      // 2d. You paid, waiting on others
+      if (myHasPaid) {
+        const pending = totalRounds - paidCount
+        const key = pending === 1 ? 'pot.next.waitingOthers' : 'pot.next.waitingOthers_plural'
+        return { msg: t(key, { n: pending }), tone: 'info' }
+      }
+      // 2e. Your turn to contribute
+      return {
+        msg: t('pot.next.contribute', { amount: fmtUsdc(contribution) }),
+        tone: 'info',
+      }
+    }
+    return null
+  }
+  const banner = nextStepBanner()
+
+  const toneStyles: Record<string, { bg: string; border: string; color: string; dot: string }> = {
+    info:    { bg: 'color-mix(in srgb, #2775CA 10%, transparent)', border: 'color-mix(in srgb, #2775CA 30%, transparent)', color: '#2775CA',        dot: '#2775CA' },
+    success: { bg: 'color-mix(in srgb, var(--success) 10%, transparent)', border: 'color-mix(in srgb, var(--success) 30%, transparent)', color: 'var(--success)', dot: 'var(--success)' },
+    warn:    { bg: 'color-mix(in srgb, #f59e0b 10%, transparent)',         border: 'color-mix(in srgb, #f59e0b 30%, transparent)',         color: '#d97706',        dot: '#f59e0b' },
+    neutral: { bg: 'color-mix(in srgb, var(--subtle) 10%, transparent)',  border: 'color-mix(in srgb, var(--subtle) 20%, transparent)',  color: 'var(--subtle)', dot: 'var(--subtle)' },
+  }
+
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
@@ -273,6 +315,25 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
             : <Link2 className="size-4" style={{ color: 'var(--subtle)' }} />}
         </button>
       </div>
+
+      {/* Next-step status banner */}
+      {banner && (() => {
+        const s = toneStyles[banner.tone]
+        return (
+          <div
+            className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
+            style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.color }}
+            role="status"
+          >
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{ background: s.dot }}
+              aria-hidden="true"
+            />
+            {banner.msg}
+          </div>
+        )
+      })()}
 
       {/* Stats card */}
       <div
