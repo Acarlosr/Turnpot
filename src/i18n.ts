@@ -42,6 +42,7 @@ const dict: Record<Locale, Record<string, string>> = {
     'home.scanning': 'Scanning pots…',
     'home.pot.members': '{n} members',
     'home.pot.round': 'Round {cur}/{total}',
+    'home.pot.round.done': 'Completed',
     'home.pot.you': 'You #{n}',
     'home.pot.perMember': 'per member',
 
@@ -70,6 +71,7 @@ const dict: Record<Locale, Record<string, string>> = {
 
     // ── Pot page ──
     'pot.round': 'Round {cur} of {total}',
+    'pot.round.done': 'Completed',
     'pot.contribution': 'Contribution',
     'pot.totalPot': 'Total pot',
     'pot.deadline': 'Deadline',
@@ -242,6 +244,7 @@ const dict: Record<Locale, Record<string, string>> = {
     'home.scanning': 'Buscando potes…',
     'home.pot.members': '{n} membros',
     'home.pot.round': 'Rodada {cur}/{total}',
+    'home.pot.round.done': 'Concluído',
     'home.pot.you': 'Você #{n}',
     'home.pot.perMember': 'por membro',
 
@@ -268,6 +271,7 @@ const dict: Record<Locale, Record<string, string>> = {
     'create.timeout': 'Enviado — aguardando confirmação',
 
     'pot.round': 'Rodada {cur} de {total}',
+    'pot.round.done': 'Concluído',
     'pot.contribution': 'Contribuição',
     'pot.totalPot': 'Pote total',
     'pot.deadline': 'Prazo',
@@ -430,6 +434,7 @@ const dict: Record<Locale, Record<string, string>> = {
     'home.scanning': 'Buscando pots…',
     'home.pot.members': '{n} miembros',
     'home.pot.round': 'Ronda {cur}/{total}',
+    'home.pot.round.done': 'Completado',
     'home.pot.you': 'Tú #{n}',
     'home.pot.perMember': 'por miembro',
 
@@ -456,6 +461,7 @@ const dict: Record<Locale, Record<string, string>> = {
     'create.timeout': 'Enviado — esperando confirmación',
 
     'pot.round': 'Ronda {cur} de {total}',
+    'pot.round.done': 'Completado',
     'pot.contribution': 'Contribución',
     'pot.totalPot': 'Pot total',
     'pot.deadline': 'Plazo',

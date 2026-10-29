@@ -284,7 +284,7 @@ export default function PotPage({ potId, onBack }: PotPageProps) {
               {statusLabel}
             </span>
             <span className="text-xs" style={{ color: 'var(--subtle)' }}>
-              {t('pot.round', { cur: Number(currentRound) + 1, total: totalRounds })}
+              {status === 1 ? t('pot.round.done') : t('pot.round', { cur: Math.min(Number(currentRound) + 1, totalRounds), total: totalRounds })}
             </span>
           </div>
         </div>

@@ -60,7 +60,7 @@ function PotRow({ potId, onSelect, address }: PotRowProps) {
           </span>
         </div>
         <p className="mt-0.5 text-xs" style={{ color: 'var(--muted)' }}>
-          {t('home.pot.members', { n: members.length })} · {t('home.pot.round', { cur: Number(currentRound) + 1, total: totalRounds })}
+          {t('home.pot.members', { n: members.length })} · {statusNum === 1 ? t('home.pot.round.done') : t('home.pot.round', { cur: Math.min(Number(currentRound) + 1, totalRounds), total: totalRounds })}
           {myIndex >= 0 && ` · ${t('home.pot.you', { n: myIndex + 1 })}`}
           <span className="sm:hidden"> · {fmtUsdc(contribution)} USDC</span>
         </p>
