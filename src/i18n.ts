@@ -100,7 +100,12 @@ const dict: Record<Locale, Record<string, string>> = {
     'history.closed': 'Round {round} closed · {amount} USDC to {addr}',
     'history.cancelled': 'Round {round} cancelled, refunds issued',
     'history.withdrawn': '{addr} withdrew {amount} USDC',
+    'history.loadMore': 'Load older events',
+    'history.loadingMore': 'Loading…',
     'mypots.viewHistory': 'View history',
+    'tx.pending': 'Pending — check history',
+    'rpc.busy': 'Network is busy. Retrying…',
+    'rpc.retry': 'Retry',
 
     // ── Status labels ──
     'status.active': 'Active',
@@ -291,7 +296,12 @@ const dict: Record<Locale, Record<string, string>> = {
     'history.closed': 'Rodada {round} encerrada · {amount} USDC para {addr}',
     'history.cancelled': 'Rodada {round} cancelada, reembolsos emitidos',
     'history.withdrawn': '{addr} sacou {amount} USDC',
+    'history.loadMore': 'Carregar eventos anteriores',
+    'history.loadingMore': 'Carregando…',
     'mypots.viewHistory': 'Ver histórico',
+    'tx.pending': 'Pendente — verifique o histórico',
+    'rpc.busy': 'Rede ocupada. Tentando novamente…',
+    'rpc.retry': 'Tentar',
 
     'status.active': 'Ativo',
     'status.completed': 'Concluído',
@@ -474,7 +484,12 @@ const dict: Record<Locale, Record<string, string>> = {
     'history.closed': 'Ronda {round} cerrada · {amount} USDC para {addr}',
     'history.cancelled': 'Ronda {round} cancelada, reembolsos emitidos',
     'history.withdrawn': '{addr} retiró {amount} USDC',
+    'history.loadMore': 'Cargar eventos anteriores',
+    'history.loadingMore': 'Cargando…',
     'mypots.viewHistory': 'Ver historial',
+    'tx.pending': 'Pendiente — revisa el historial',
+    'rpc.busy': 'Red ocupada. Reintentando…',
+    'rpc.retry': 'Reintentar',
 
     'status.active': 'Activo',
     'status.completed': 'Completado',

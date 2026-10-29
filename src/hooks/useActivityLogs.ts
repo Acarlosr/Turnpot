@@ -28,7 +28,8 @@ const DEPLOY_BLOCK: Record<number, bigint> = {
   [arcMainnet.id]: 27_849_693n,
   [arcTestnet.id]: 0n,
 }
-const CHUNK_SIZE = 5_000n
+const CHUNK_SIZE = 2_000n
+const MAX_RPC_RETRIES = 3
 
 // ── Fallback RPC lists per chain ─────────────────────────────────────────────
 const FALLBACK_RPCS: Record<number, string[]> = {
@@ -104,6 +105,32 @@ function getOrCreate(chainId: number): CacheEntry {
   return CACHE.get(chainId)!
 }
 
+// ── Exponential backoff helper ────────────────────────────────────────────────
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Retry fn up to MAX_RPC_RETRIES times with exponential backoff on 429/400. */
+async function fetchWithBackoff<T>(fn: () => Promise<T>): Promise<T> {
+  let delay = 1_000
+  let lastErr: unknown
+  for (let i = 0; i < MAX_RPC_RETRIES; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      const msg = err instanceof Error ? err.message : String(err)
+      const isRateLimit = msg.includes('429') || msg.includes('400') || msg.includes('rate') || msg.includes('limit')
+      if (i < MAX_RPC_RETRIES - 1) {
+        await sleep(isRateLimit ? delay : 300)
+        if (isRateLimit) delay *= 2
+      }
+    }
+  }
+  throw lastErr
+}
+
 // ── Core fetch function (tries each RPC in turn) ──────────────────────────────
 async function fetchLogs(chainId: number, turnpotAddress: `0x${string}`) {
   const entry = getOrCreate(chainId)
@@ -137,14 +164,18 @@ async function fetchLogs(chainId: number, turnpotAddress: `0x${string}`) {
       }
 
       for (const { from: f, to } of chunks) {
-        const [contributed, closed, cancelled, withdrawn, withdrawnTo] =
-          await Promise.all([
-            client.getLogs({ address: turnpotAddress, event: EV_CONTRIBUTED,  fromBlock: f, toBlock: to }),
-            client.getLogs({ address: turnpotAddress, event: EV_CLOSED,       fromBlock: f, toBlock: to }),
-            client.getLogs({ address: turnpotAddress, event: EV_CANCELLED,    fromBlock: f, toBlock: to }),
-            client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN,    fromBlock: f, toBlock: to }),
-            client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN_TO, fromBlock: f, toBlock: to }),
-          ])
+        // Sequential calls (not parallel) to avoid overwhelming the RPC with
+        // 5 concurrent getLogs requests per chunk.
+        const contributed = await fetchWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_CONTRIBUTED,  fromBlock: f, toBlock: to }))
+        const closed = await fetchWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_CLOSED,       fromBlock: f, toBlock: to }))
+        const cancelled = await fetchWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_CANCELLED,    fromBlock: f, toBlock: to }))
+        const withdrawn = await fetchWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN,    fromBlock: f, toBlock: to }))
+        const withdrawnTo = await fetchWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN_TO, fromBlock: f, toBlock: to }))
 
         const newRows: RawLog[] = []
 

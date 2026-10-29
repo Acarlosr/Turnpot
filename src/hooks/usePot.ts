@@ -11,6 +11,9 @@ export interface PotData {
   status: number
 }
 
+// Cache reads for 30 s; never auto-refetch — only refresh on explicit user action.
+const QUERY_OPTS = { staleTime: 30_000, refetchInterval: false as const }
+
 /** Returns the wagmi contract base for the wallet's active Arc chain. */
 function useContractBase() {
   const { chainId, turnpotAddress, isDeployed } = useActiveChainConfig()
@@ -29,7 +32,7 @@ export function usePotCount() {
     abi: base.abi,
     chainId: base.chainId,
     functionName: 'potCount',
-    query: { enabled: base._enabled },
+    query: { enabled: base._enabled, ...QUERY_OPTS },
   })
 }
 
@@ -41,7 +44,7 @@ export function usePot(potId: bigint | undefined) {
     chainId: base.chainId,
     functionName: 'getPot',
     args: potId !== undefined ? [potId] : undefined,
-    query: { enabled: base._enabled && potId !== undefined },
+    query: { enabled: base._enabled && potId !== undefined, ...QUERY_OPTS },
   })
 }
 
@@ -53,7 +56,7 @@ export function useRoundDeadline(potId: bigint | undefined) {
     chainId: base.chainId,
     functionName: 'roundDeadline',
     args: potId !== undefined ? [potId] : undefined,
-    query: { enabled: base._enabled && potId !== undefined },
+    query: { enabled: base._enabled && potId !== undefined, ...QUERY_OPTS },
   })
 }
 
@@ -65,7 +68,7 @@ export function usePaidCount(potId: bigint | undefined) {
     chainId: base.chainId,
     functionName: 'paidCount',
     args: potId !== undefined ? [potId] : undefined,
-    query: { enabled: base._enabled && potId !== undefined },
+    query: { enabled: base._enabled && potId !== undefined, ...QUERY_OPTS },
   })
 }
 
@@ -84,7 +87,7 @@ export function useHasPaid(
       potId !== undefined && round !== undefined && member
         ? [potId, round, member]
         : undefined,
-    query: { enabled: base._enabled && potId !== undefined && round !== undefined && !!member },
+    query: { enabled: base._enabled && potId !== undefined && round !== undefined && !!member, ...QUERY_OPTS },
   })
 }
 
@@ -96,11 +99,11 @@ export function useMemberDefaults(member: `0x${string}` | undefined) {
     chainId: base.chainId,
     functionName: 'defaults',
     args: member ? [member] : undefined,
-    query: { enabled: base._enabled && !!member },
+    query: { enabled: base._enabled && !!member, ...QUERY_OPTS },
   })
 }
 
-/** Fetch hasPaid for every member in a round */
+/** Fetch hasPaid for every member in a round — single multicall */
 export function useRoundPayments(
   potId: bigint | undefined,
   round: bigint | undefined,
@@ -117,11 +120,12 @@ export function useRoundPayments(
     })),
     query: {
       enabled: base._enabled && potId !== undefined && round !== undefined && members.length > 0,
+      ...QUERY_OPTS,
     },
   })
 }
 
-/** Fetch defaults for every member */
+/** Fetch defaults for every member — single multicall */
 export function useMembersDefaults(members: readonly `0x${string}`[]) {
   const base = useContractBase()
   return useReadContracts({
@@ -132,7 +136,7 @@ export function useMembersDefaults(members: readonly `0x${string}`[]) {
       functionName: 'defaults' as const,
       args: [m] as const,
     })),
-    query: { enabled: base._enabled && members.length > 0 },
+    query: { enabled: base._enabled && members.length > 0, ...QUERY_OPTS },
   })
 }
 
@@ -144,6 +148,6 @@ export function useWithdrawableBalance(account: `0x${string}` | undefined) {
     chainId: base.chainId,
     functionName: 'balanceOf',
     args: account ? [account] : undefined,
-    query: { enabled: base._enabled && !!account },
+    query: { enabled: base._enabled && !!account, ...QUERY_OPTS },
   })
 }

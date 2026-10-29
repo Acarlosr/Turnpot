@@ -26,7 +26,7 @@ export function useMyPots(address: `0x${string}` | undefined) {
       args: [id] as const,
       chainId,
     })),
-    query: { enabled: isDeployed && !!address && scanCount > 0 },
+    query: { enabled: isDeployed && !!address && scanCount > 0, staleTime: 30_000, refetchInterval: false as const },
   })
 
   const myPotIds: bigint[] = []
