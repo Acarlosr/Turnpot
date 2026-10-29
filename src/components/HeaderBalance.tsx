@@ -2,38 +2,46 @@
  * HeaderBalance — shows in the header next to the wallet button:
  *   [native USDC balance]  [withdraw badge if > 0]
  *
+ * Refresh strategy (no block-number polling):
+ *   - on mount
+ *   - every 30 s via setInterval
+ *   - immediately after a tx succeeds (caller passes onTxSuccess callback)
+ *
  * States:
  *   loading  → animated skeleton pill
  *   failed   → "—" in muted colour
  *   success  → formatted balance with 2 decimals
- *
- * Always renders when connected (never disappears silently on error).
  */
-import { useState, useRef, useEffect } from 'react'
-import { useAccount, useBalance, useBlockNumber, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useAccount, useBalance, useWriteContract } from 'wagmi'
 import { ArrowDownToLine } from 'lucide-react'
 import { useWithdrawableBalance } from '@/hooks/usePot'
 import { useActiveChainConfig } from '@/lib/chain'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { fmtUsdc2, fmtUsdc } from '@/lib/format'
+import { useTxWatcher } from '@/hooks/useTxWatcher'
 import TxButton from './TxButton'
 import ExplorerLink from './ExplorerLink'
 import { toast } from 'sonner'
 
-// ── Native USDC balance ───────────────────────────────────────────────────────
+const REFRESH_INTERVAL_MS = 30_000
+
+// ── Balance hooks with 30s timer refresh ─────────────────────────────────────
 
 function useNativeBalance() {
   const { address, chainId } = useAccount()
-  const { data: blockNumber } = useBlockNumber({ watch: true, chainId })
   const result = useBalance({
     address,
     chainId,
-    query: { enabled: !!address },
+    query: { enabled: !!address, staleTime: REFRESH_INTERVAL_MS, refetchInterval: false },
   })
+  // 30s refresh timer
   useEffect(() => {
-    if (blockNumber !== undefined && address) void result.refetch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blockNumber, address])
+    if (!address) return
+    const id = setInterval(() => { void result.refetch() }, REFRESH_INTERVAL_MS)
+    return () => clearInterval(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, chainId])
   return result
 }
 
@@ -41,26 +49,24 @@ function useNativeBalance() {
 
 interface WithdrawPopoverProps {
   onClose: () => void
+  onSuccess: () => void
 }
 
-function WithdrawPopover({ onClose }: WithdrawPopoverProps) {
+function WithdrawPopover({ onClose, onSuccess }: WithdrawPopoverProps) {
   const { address } = useAccount()
   const { turnpotAddress, chainId: activeChainId } = useActiveChainConfig()
   const { data: balance, refetch } = useWithdrawableBalance(address)
 
   const { writeContract, data: hash, isPending, reset } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-    chainId: activeChainId,
-  })
 
-  useEffect(() => {
-    if (isSuccess && hash) {
+  const { isConfirming, isSuccess, isTimeout } = useTxWatcher(hash, {
+    onSuccess: () => {
       void refetch()
+      onSuccess()
       toast.success('Withdrawn successfully')
       onClose()
-    }
-  }, [isSuccess, hash, refetch, onClose])
+    },
+  })
 
   function handleWithdraw() {
     writeContract(
@@ -108,7 +114,7 @@ function WithdrawPopover({ onClose }: WithdrawPopoverProps) {
         onClick={handleWithdraw}
         className="w-full"
       />
-      {isSuccess && hash && (
+      {(isSuccess || isTimeout) && hash && (
         <div className="mt-2">
           <ExplorerLink hash={hash} />
         </div>
@@ -143,15 +149,14 @@ function BalancePill({ isLoading, isError, value }: { isLoading: boolean; isErro
 
 export default function HeaderBalance() {
   const { address, isConnected } = useAccount()
-  const { data: nativeBalance, isLoading: balLoading, isError: balError } = useNativeBalance()
+  const { data: nativeBalance, isLoading: balLoading, isError: balError, refetch: refetchBalance } = useNativeBalance()
   const { data: withdrawable, refetch: refetchWithdrawable } = useWithdrawableBalance(address)
 
-  const { chainId } = useAccount()
-  const { data: blockNumber } = useBlockNumber({ watch: true, chainId })
-  useEffect(() => {
-    if (blockNumber !== undefined && address) void refetchWithdrawable()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blockNumber, address])
+  // Refresh both after a successful withdraw
+  const refetchAll = useCallback(() => {
+    void refetchBalance()
+    void refetchWithdrawable()
+  }, [refetchBalance, refetchWithdrawable])
 
   const [popoverOpen, setPopoverOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -197,7 +202,10 @@ export default function HeaderBalance() {
           </button>
 
           {popoverOpen && (
-            <WithdrawPopover onClose={() => setPopoverOpen(false)} />
+            <WithdrawPopover
+              onClose={() => setPopoverOpen(false)}
+              onSuccess={refetchAll}
+            />
           )}
         </div>
       )}

@@ -32,16 +32,25 @@ const CHUNK_SIZE = 2_000n
 const MAX_RPC_RETRIES = 3
 
 // ── Fallback RPC lists per chain ─────────────────────────────────────────────
-const FALLBACK_RPCS: Record<number, string[]> = {
-  [arcMainnet.id]: [
-    'https://rpc.mainnet.arc.io',
-    'https://rpc.drpc.mainnet.arc.io',
-    'https://rpc.quicknode.mainnet.arc.io',
-    'https://rpc.blockdaemon.mainnet.arc.io',
-  ],
-  [arcTestnet.id]: [
-    'https://rpc.testnet.arc.io',
-  ],
+// Lazily built so VITE_RPC_MAINNET / VITE_RPC_TESTNET env vars (read at module
+// load time into CHAIN_CONFIGS[id].rpcUrl) are always at position 0.
+function getFallbackRpcs(chainId: number): string[] {
+  const primary = CHAIN_CONFIGS[chainId]?.rpcUrl
+  if (chainId === arcMainnet.id) {
+    const list = [
+      'https://rpc.mainnet.arc.io',
+      'https://rpc.drpc.mainnet.arc.io',
+      'https://rpc.quicknode.mainnet.arc.io',
+      'https://rpc.blockdaemon.mainnet.arc.io',
+    ]
+    // Put env-override first only if it differs from the hardcoded primary
+    return primary && primary !== list[0] ? [primary, ...list] : list
+  }
+  if (chainId === arcTestnet.id) {
+    const list = ['https://rpc.testnet.arc.io']
+    return primary && primary !== list[0] ? [primary, ...list] : list
+  }
+  return primary ? [primary] : []
 }
 
 // ── Event topic selectors ─────────────────────────────────────────────────────
@@ -142,7 +151,7 @@ async function fetchLogs(chainId: number, turnpotAddress: `0x${string}`) {
   const cfg = CHAIN_CONFIGS[chainId]
   if (!cfg) { entry.loading = false; return }
 
-  const rpcs = FALLBACK_RPCS[chainId] ?? [cfg.rpcUrl]
+  const rpcs = getFallbackRpcs(chainId)
 
   let lastError: unknown
   for (const rpcUrl of rpcs) {

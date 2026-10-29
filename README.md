@@ -100,3 +100,14 @@ All variables are optional — the mainnet and testnet addresses are hardcoded i
 | `VITE_TURNPOT_ADDRESS_MAINNET` | Override the mainnet contract address |
 | `VITE_RPC_MAINNET` | Primary RPC for Arc Mainnet (default: `https://rpc.mainnet.arc.io`) |
 | `VITE_RPC_TESTNET` | Primary RPC for Arc Testnet (default: `https://rpc.testnet.arc.io`) |
+
+### Deploying to Vercel (production)
+
+Set these two environment variables in your Vercel project settings before deploying:
+
+```
+VITE_RPC_MAINNET=https://your-private-rpc.example.com/arc-mainnet
+VITE_CHAIN=mainnet
+```
+
+`VITE_RPC_MAINNET` routes all read calls through your private or rate-limit-free RPC endpoint instead of the public `rpc.mainnet.arc.io`. `VITE_CHAIN=mainnet` makes the app default to Arc Mainnet for disconnected users. Both variables take effect at build time — redeploy after changing them.
