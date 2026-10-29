@@ -13,11 +13,11 @@ import { mainnet } from 'wagmi/chains'
 import { injected } from 'wagmi/connectors'
 import { unstable_connector } from 'wagmi'
 import { registerChain } from './tracing'
-import { arcTestnet, arcMainnet } from '@/lib/chain'
+import { arcTestnet, arcMainnet, CHAIN_CONFIGS } from '@/lib/chain'
 
 // Pre-register chain RPC URLs so trace events show correct chain names immediately
-registerChain(arcTestnet.id, arcTestnet.rpcUrls.default.http[0])
-registerChain(arcMainnet.id, arcMainnet.rpcUrls.default.http[0])
+registerChain(arcTestnet.id, CHAIN_CONFIGS[arcTestnet.id].rpcUrl)
+registerChain(arcMainnet.id, CHAIN_CONFIGS[arcMainnet.id].rpcUrl)
 
 const RPC_OPTIONS = { retryCount: 2, timeout: 8_000 }
 
@@ -28,17 +28,19 @@ export const config = createConfig({
     [arcTestnet.id]: fallback(
       [
         unstable_connector(injected),
-        http('https://rpc.testnet.arc.io', RPC_OPTIONS),
+        // env override (VITE_RPC_TESTNET) is the primary; falls back to public Arc endpoint
+        http(CHAIN_CONFIGS[arcTestnet.id].rpcUrl, RPC_OPTIONS),
       ],
       { retryCount: 1 },
     ),
     [arcMainnet.id]: fallback(
       [
         unstable_connector(injected),
-        http('https://rpc.mainnet.arc.io',           RPC_OPTIONS),
-        http('https://rpc.drpc.mainnet.arc.io',      RPC_OPTIONS),
-        http('https://rpc.quicknode.mainnet.arc.io', RPC_OPTIONS),
-        http('https://rpc.blockdaemon.mainnet.arc.io', RPC_OPTIONS),
+        // env override (VITE_RPC_MAINNET) is the primary; then public fallbacks
+        http(CHAIN_CONFIGS[arcMainnet.id].rpcUrl,           RPC_OPTIONS),
+        http('https://rpc.drpc.mainnet.arc.io',             RPC_OPTIONS),
+        http('https://rpc.quicknode.mainnet.arc.io',        RPC_OPTIONS),
+        http('https://rpc.blockdaemon.mainnet.arc.io',      RPC_OPTIONS),
       ],
       { retryCount: 1 },
     ),

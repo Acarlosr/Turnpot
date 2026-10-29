@@ -98,3 +98,5 @@ All variables are optional — the mainnet and testnet addresses are hardcoded i
 | `VITE_CHAIN` | `testnet` (default) or `mainnet` — sets the default chain at build time |
 | `VITE_TURNPOT_ADDRESS_TESTNET` | Override the testnet contract address |
 | `VITE_TURNPOT_ADDRESS_MAINNET` | Override the mainnet contract address |
+| `VITE_RPC_MAINNET` | Primary RPC for Arc Mainnet (default: `https://rpc.mainnet.arc.io`) |
+| `VITE_RPC_TESTNET` | Primary RPC for Arc Testnet (default: `https://rpc.testnet.arc.io`) |

@@ -10,6 +10,16 @@
 import type { Chain } from 'viem'
 import { useAccount } from 'wagmi'
 
+// ─── RPC overrides from environment ──────────────────────────────────────────
+// Set VITE_RPC_MAINNET / VITE_RPC_TESTNET in .env to use a private or custom RPC.
+// Falls back to the public Arc endpoints when not set.
+
+const RPC_MAINNET: string =
+  (import.meta.env.VITE_RPC_MAINNET as string | undefined) ?? 'https://rpc.mainnet.arc.io'
+
+const RPC_TESTNET: string =
+  (import.meta.env.VITE_RPC_TESTNET as string | undefined) ?? 'https://rpc.testnet.arc.io'
+
 // ─── Chain definitions ────────────────────────────────────────────────────────
 
 export const arcTestnet = {
@@ -17,7 +27,7 @@ export const arcTestnet = {
   name: 'Arc Testnet',
   nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://rpc.testnet.arc.io'] },
+    default: { http: [RPC_TESTNET] },
   },
   blockExplorers: {
     default: { name: 'Arc Testnet Explorer', url: 'https://explorer.testnet.arc.io' },
@@ -30,7 +40,7 @@ export const arcMainnet = {
   name: 'Arc',
   nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://rpc.mainnet.arc.io'] },
+    default: { http: [RPC_MAINNET] },
   },
   blockExplorers: {
     default: { name: 'Arc Explorer', url: 'https://explorer.arc.io' },
@@ -70,7 +80,7 @@ export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
     isTestnet: true,
     turnpotAddress: CONTRACT_ADDRESS_TESTNET,
     explorerBase: 'https://explorer.testnet.arc.io',
-    rpcUrl: 'https://rpc.testnet.arc.io',
+    rpcUrl: RPC_TESTNET,
   },
   [arcMainnet.id]: {
     chain: arcMainnet,
@@ -79,7 +89,7 @@ export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
     isTestnet: false,
     turnpotAddress: CONTRACT_ADDRESS_MAINNET,
     explorerBase: 'https://explorer.arc.io',
-    rpcUrl: 'https://rpc.mainnet.arc.io',
+    rpcUrl: RPC_MAINNET,
   },
 }
 
