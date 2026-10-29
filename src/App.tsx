@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectKitButton } from 'connectkit'
-import { AlertTriangle, Rocket, Home } from 'lucide-react'
+import { AlertTriangle, Rocket } from 'lucide-react'
 import { useActiveChainConfig, arcMainnet } from '@/lib/chain'
 import TurnPotLogo from '@/components/TurnPotLogo'
 import { fmtAddr } from '@/lib/format'
@@ -15,6 +15,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import WalletDrawer from '@/components/WalletDrawer'
 import BlockedBanner from '@/components/BlockedBanner'
 import HomeView from '@/pages/Home'
+import MyPotsView from '@/pages/MyPots'
 import CreatePot from '@/pages/CreatePot'
 import PotPage from '@/pages/PotPage'
 import DeployPage from '@/pages/DeployPage'
@@ -28,6 +29,8 @@ export default function App() {
   const { failed: readsFailed } = useProtocolStats()
 
   const isDeployRoute = route.name === 'deploy'
+  const isHomeRoute   = route.name === 'home'
+  const isMyPotsRoute = route.name === 'my-pots'
 
   // Show banners only outside the deploy page
   const showWrongNetwork = isConnected && !isKnown && !isDeployRoute
@@ -46,11 +49,12 @@ export default function App() {
           borderBottom: '1px solid var(--border)',
         }}
       >
-        {/* Left: logo + wordmark (home link) + home icon */}
+        {/* Left: logo + nav tabs */}
         <div className="flex min-w-0 shrink items-center gap-1">
+          {/* Logo — always goes to "/" */}
           <button
             onClick={goHome}
-            className="flex min-w-0 shrink items-center gap-2"
+            className="flex shrink-0 items-center gap-2"
             aria-label="TurnPot — Home"
           >
             <TurnPotLogo size={26} />
@@ -59,15 +63,36 @@ export default function App() {
             </span>
           </button>
 
-          {/* Home icon button — shown when not already on home */}
-          {route.name !== 'home' && (
-            <button
-              onClick={goHome}
-              aria-label="Home"
-              className="ml-1 flex size-8 items-center justify-center rounded-xl transition-all hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <Home className="size-4" style={{ color: 'var(--ink)' }} />
-            </button>
+          {/* Nav tabs — shown when connected (or always to allow navigation) */}
+          {isConnected && (
+            <nav className="ml-2 flex items-center gap-0.5" aria-label="Main navigation">
+              <button
+                onClick={goHome}
+                className="rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
+                style={isHomeRoute ? {
+                  background: 'var(--selected-bg)',
+                  color: 'var(--selected-text)',
+                } : {
+                  color: 'var(--subtle)',
+                }}
+                aria-current={isHomeRoute ? 'page' : undefined}
+              >
+                {t('nav.home')}
+              </button>
+              <button
+                onClick={() => navigate({ name: 'my-pots' })}
+                className="rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
+                style={isMyPotsRoute ? {
+                  background: 'var(--selected-bg)',
+                  color: 'var(--selected-text)',
+                } : {
+                  color: 'var(--subtle)',
+                }}
+                aria-current={isMyPotsRoute ? 'page' : undefined}
+              >
+                {t('nav.myPots')}
+              </button>
+            </nav>
           )}
         </div>
 
@@ -165,6 +190,12 @@ export default function App() {
       <main className="mx-auto w-full max-w-lg px-4 py-6 pb-24 sm:px-6">
         {route.name === 'home' && (
           <HomeView
+            onCreatePot={() => navigate({ name: 'create' })}
+            onMyPots={() => navigate({ name: 'my-pots' })}
+          />
+        )}
+        {route.name === 'my-pots' && (
+          <MyPotsView
             onSelectPot={(id) => navigate({ name: 'pot', potId: id })}
             onCreatePot={() => navigate({ name: 'create' })}
           />

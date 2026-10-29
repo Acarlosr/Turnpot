@@ -18,11 +18,13 @@
  * failed = true when potCount read itself errored (hard network block).
  */
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useReadContract, useReadContracts } from 'wagmi'
 import { arcMainnet, CHAIN_CONFIGS } from '@/lib/chain'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { useAccount } from 'wagmi'
+
+const STATS_TIMEOUT_MS = 10_000
 
 export interface ProtocolStatsData {
   potCount: number
@@ -133,11 +135,28 @@ export function useProtocolStats(): ProtocolStatsData {
   const loading = potCountLoading || (potIds.length > 0 && potsLoading)
   const failed  = potCountError || potsError
 
+  // After STATS_TIMEOUT_MS of continuous loading with no data, flip timedOut.
+  // We only ever set it from inside a setTimeout callback (async), which satisfies
+  // the linter's "no synchronous setState in effect" rule.
+  const [timedOut, setTimedOut] = useState(false)
+
+  useEffect(() => {
+    // When loading resolves (success or error), always clear timedOut via timeout
+    // so the next loading cycle starts fresh.
+    if (!loading) {
+      const id = setTimeout(() => setTimedOut(false), 0)
+      return () => clearTimeout(id)
+    }
+    // Still loading — set a deadline
+    const id = setTimeout(() => setTimedOut(true), STATS_TIMEOUT_MS)
+    return () => clearTimeout(id)
+  }, [loading])
+
   return {
     potCount: potCount ?? 0,
     txCount,
     totalUsdc,
-    loading,
-    failed,
+    loading: loading && !timedOut,
+    failed:  failed || timedOut,
   }
 }
