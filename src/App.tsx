@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectKitButton } from 'connectkit'
 import { AlertTriangle, Rocket, Home } from 'lucide-react'
@@ -10,6 +11,7 @@ import NetworkPill from '@/components/NetworkPill'
 import ThemeToggle from '@/components/ThemeToggle'
 import HeaderBalance from '@/components/HeaderBalance'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import WalletDrawer from '@/components/WalletDrawer'
 import HomeView from '@/pages/Home'
 import CreatePot from '@/pages/CreatePot'
 import PotPage from '@/pages/PotPage'
@@ -20,6 +22,7 @@ export default function App() {
   const { isConnected, chainId } = useAccount()
   const { isDeployed, isKnown } = useActiveChainConfig()
   const { t } = useI18n()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const isDeployRoute = route.name === 'deploy'
 
@@ -87,7 +90,7 @@ export default function App() {
               const label = ensName ?? fmtAddr(address)
               return (
                 <button
-                  onClick={show}
+                  onClick={() => setDrawerOpen(true)}
                   className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-80"
                   style={{
                     background: 'transparent',
@@ -108,6 +111,11 @@ export default function App() {
               )
             }}
           </ConnectKitButton.Custom>
+
+          {/* Wallet activity drawer */}
+          {isConnected && (
+            <WalletDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+          )}
         </div>
       </header>
 

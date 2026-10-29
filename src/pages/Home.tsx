@@ -6,6 +6,7 @@ import { usePot } from '@/hooks/usePot'
 import { fmtUsdc } from '@/lib/format'
 import { useActiveChainConfig } from '@/lib/chain'
 import { useI18n } from '@/i18n'
+import ProtocolStats from '@/components/ProtocolStats'
 
 interface PotRowProps {
   potId: bigint
@@ -252,6 +253,9 @@ export default function Home({ onSelectPot, onCreatePot }: HomeProps) {
           <ArrowRight className="size-4" />
         </button>
       )}
+
+      {/* Protocol stats — always visible when deployed */}
+      <ProtocolStats />
 
       {/* My Pots */}
       {isConnected && hasPots && (
