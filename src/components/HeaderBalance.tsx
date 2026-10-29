@@ -2,12 +2,12 @@
  * HeaderBalance — shows in the header next to the wallet button:
  *   [native USDC balance]  [withdraw badge if > 0]
  *
- * Balance: native balance on the active Arc chain (18 dec = USDC).
- * Refreshed on every new block (wagmi watch), so it picks up post-tx changes.
+ * States:
+ *   loading  → animated skeleton pill
+ *   failed   → "—" in muted colour
+ *   success  → formatted balance with 2 decimals
  *
- * Withdraw badge: green pill "X.XX to withdraw" when the TurnPot contract
- * has a withdrawable balance for this wallet. Clicking it opens an inline
- * popover with the Withdraw button (same as WalletPanel, no page navigation).
+ * Always renders when connected (never disappears silently on error).
  */
 import { useState, useRef, useEffect } from 'react'
 import { useAccount, useBalance, useBlockNumber, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
@@ -28,21 +28,12 @@ function useNativeBalance() {
   const result = useBalance({
     address,
     chainId,
-    query: {
-      enabled: !!address,
-      // Refresh whenever the block number changes (catches post-tx updates)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    },
+    query: { enabled: !!address },
   })
-  // Refetch on every new block
   useEffect(() => {
-    if (blockNumber !== undefined && address) {
-      void result.refetch()
-    }
-    // result.refetch is stable; blockNumber + address are the real deps
+    if (blockNumber !== undefined && address) void result.refetch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockNumber, address])
-
   return result
 }
 
@@ -126,27 +117,45 @@ function WithdrawPopover({ onClose }: WithdrawPopoverProps) {
   )
 }
 
+// ── Balance display pill ──────────────────────────────────────────────────────
+
+function BalancePill({ isLoading, isError, value }: { isLoading: boolean; isError: boolean; value: string }) {
+  if (isLoading) {
+    return (
+      <div
+        className="h-4 w-14 animate-pulse rounded hidden sm:block"
+        style={{ background: 'var(--border)' }}
+        aria-label="Loading balance"
+      />
+    )
+  }
+  return (
+    <span
+      className="tabular-nums text-sm font-semibold hidden sm:inline"
+      style={{ color: isError ? 'var(--subtle)' : 'var(--ink)' }}
+    >
+      {isError ? '—' : value} USDC
+    </span>
+  )
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export default function HeaderBalance() {
   const { address, isConnected } = useAccount()
-  const { data: nativeBalance } = useNativeBalance()
+  const { data: nativeBalance, isLoading: balLoading, isError: balError } = useNativeBalance()
   const { data: withdrawable, refetch: refetchWithdrawable } = useWithdrawableBalance(address)
 
-  // Refetch withdrawable when block changes too
   const { chainId } = useAccount()
   const { data: blockNumber } = useBlockNumber({ watch: true, chainId })
   useEffect(() => {
-    if (blockNumber !== undefined && address) {
-      void refetchWithdrawable()
-    }
+    if (blockNumber !== undefined && address) void refetchWithdrawable()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockNumber, address])
 
   const [popoverOpen, setPopoverOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Close popover on outside click
   useEffect(() => {
     if (!popoverOpen) return
     function handler(e: MouseEvent) {
@@ -159,18 +168,16 @@ export default function HeaderBalance() {
   if (!isConnected) return null
 
   const hasWithdrawable = withdrawable !== undefined && withdrawable > 0n
+  const balanceStr = nativeBalance ? fmtUsdc2(nativeBalance.value) : '0.00'
 
   return (
     <div className="flex items-center gap-1.5">
-      {/* Native USDC balance */}
-      {nativeBalance !== undefined && (
-        <span
-          className="tabular-nums text-sm font-semibold hidden sm:inline"
-          style={{ color: 'var(--ink)' }}
-        >
-          {fmtUsdc2(nativeBalance.value)} USDC
-        </span>
-      )}
+      {/* Native USDC balance — always present, skeleton/— on failure */}
+      <BalancePill
+        isLoading={balLoading && !nativeBalance}
+        isError={balError}
+        value={balanceStr}
+      />
 
       {/* Withdraw badge + popover */}
       {hasWithdrawable && (

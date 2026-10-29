@@ -191,6 +191,10 @@ const dict: Record<Locale, Record<string, string>> = {
     'pot.next.withdraw': 'You received the pot. Withdraw {amount} USDC',
     'pot.next.expired': 'Round expired. Cancel it to refund who paid',
     'pot.next.completed': 'Pot completed. Everyone received once',
+
+    'network.blocked': 'Network reads are blocked by your browser or an extension. Disable Shields / ad blocker for this site, or reload.',
+    'network.retry': 'Retry',
+    'network.failed': '—',
   },
 
   'pt-BR': {
@@ -357,6 +361,10 @@ const dict: Record<Locale, Record<string, string>> = {
     'pot.next.withdraw': 'Você recebeu o pote. Saque {amount} USDC',
     'pot.next.expired': 'Rodada expirada. Cancele para reembolsar quem pagou',
     'pot.next.completed': 'Pote completo. Todos receberam uma vez',
+
+    'network.blocked': 'Leituras de rede estão bloqueadas pelo seu navegador ou extensão. Desative o Shields / bloqueador de anúncios neste site, ou recarregue.',
+    'network.retry': 'Tentar novamente',
+    'network.failed': '—',
   },
 
   es: {
@@ -523,6 +531,10 @@ const dict: Record<Locale, Record<string, string>> = {
     'pot.next.withdraw': 'Recibiste el pot. Retira {amount} USDC',
     'pot.next.expired': 'Ronda expirada. Cancélala para reembolsar a quien pagó',
     'pot.next.completed': 'Tanda completa. Todos recibieron una vez',
+
+    'network.blocked': 'Las lecturas de red están bloqueadas por tu navegador o extensión. Desactiva Shields / el bloqueador de anuncios en este sitio, o recarga.',
+    'network.retry': 'Reintentar',
+    'network.failed': '—',
   },
 }
 

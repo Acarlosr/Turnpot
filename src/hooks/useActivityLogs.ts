@@ -1,6 +1,9 @@
 /**
- * useActivityLogs — fetches all TurnPot contract events, chunked in 10 000-block
+ * useActivityLogs — fetches all TurnPot contract events, chunked in 5 000-block
  * windows, cached in memory per chainId, refreshed on demand.
+ *
+ * Ad-blocker resilience: tries each RPC in the fallback list in turn; marks the
+ * cache entry as `failed` only when every RPC is unreachable.
  *
  * Events captured:
  *   Contributed(potId, round, member)
@@ -11,7 +14,7 @@
  *
  * Consumers:
  *   useWalletActivity(address) — rows for the wallet drawer
- *   useProtocolStats()         — aggregate counts / total USDC for Home
+ *   (Protocol stats now live in useProtocolStats — view-call based, not getLogs)
  */
 
 import { useEffect, useState, useCallback } from 'react'
@@ -23,9 +26,22 @@ import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 // ── Deploy blocks (start of range to scan) ────────────────────────────────────
 const DEPLOY_BLOCK: Record<number, bigint> = {
   [arcMainnet.id]: 27_849_693n,
-  [arcTestnet.id]: 0n,           // testnet — scan from genesis
+  [arcTestnet.id]: 0n,
 }
-const CHUNK_SIZE = 10_000n
+const CHUNK_SIZE = 5_000n
+
+// ── Fallback RPC lists per chain ─────────────────────────────────────────────
+const FALLBACK_RPCS: Record<number, string[]> = {
+  [arcMainnet.id]: [
+    'https://rpc.mainnet.arc.io',
+    'https://rpc.drpc.mainnet.arc.io',
+    'https://rpc.quicknode.mainnet.arc.io',
+    'https://rpc.blockdaemon.mainnet.arc.io',
+  ],
+  [arcTestnet.id]: [
+    'https://rpc.testnet.arc.io',
+  ],
+}
 
 // ── Event topic selectors ─────────────────────────────────────────────────────
 const EV_CONTRIBUTED  = parseAbiItem('event Contributed(uint256 indexed potId, uint256 indexed round, address indexed member)')
@@ -43,12 +59,11 @@ export type ActivityType =
 
 export interface ActivityRow {
   type: ActivityType
-  potId: bigint | null       // null for Withdrawn (contract-level)
-  amount: bigint             // 18-dec native USDC
+  potId: bigint | null
+  amount: bigint
   blockNumber: bigint
   txHash: `0x${string}`
-  timestamp: number          // unix seconds; 0 when not yet resolved
-  /** address this event is "about" — used for wallet filtering */
+  timestamp: number
   actor: string
 }
 
@@ -68,8 +83,9 @@ interface RawLog {
 // ── Cache ─────────────────────────────────────────────────────────────────────
 interface CacheEntry {
   rows: RawLog[]
-  scannedTo: bigint          // latest block we've fetched up to
+  scannedTo: bigint
   loading: boolean
+  failed: boolean
   listeners: Set<() => void>
 }
 
@@ -81,100 +97,110 @@ function getOrCreate(chainId: number): CacheEntry {
       rows: [],
       scannedTo: DEPLOY_BLOCK[chainId] ?? 0n,
       loading: false,
+      failed: false,
       listeners: new Set(),
     })
   }
   return CACHE.get(chainId)!
 }
 
-// ── Core fetch function ───────────────────────────────────────────────────────
+// ── Core fetch function (tries each RPC in turn) ──────────────────────────────
 async function fetchLogs(chainId: number, turnpotAddress: `0x${string}`) {
   const entry = getOrCreate(chainId)
   if (entry.loading) return
   entry.loading = true
-  entry.listeners.forEach((fn) => fn())   // notify "loading started"
+  entry.failed = false
+  entry.listeners.forEach((fn) => fn())
 
   const cfg = CHAIN_CONFIGS[chainId]
   if (!cfg) { entry.loading = false; return }
 
-  const client = createPublicClient({
-    chain: cfg.chain,
-    transport: http(cfg.rpcUrl),
-  })
+  const rpcs = FALLBACK_RPCS[chainId] ?? [cfg.rpcUrl]
 
-  try {
-    const latest = await client.getBlockNumber()
-    const from = entry.scannedTo > 0n ? entry.scannedTo + 1n : entry.scannedTo
+  let lastError: unknown
+  for (const rpcUrl of rpcs) {
+    const client = createPublicClient({
+      chain: cfg.chain,
+      transport: http(rpcUrl, { retryCount: 1, timeout: 8_000 }),
+    })
 
-    // Build chunks
-    const chunks: Array<{ from: bigint; to: bigint }> = []
-    let cur = from
-    while (cur <= latest) {
-      const end = cur + CHUNK_SIZE - 1n < latest ? cur + CHUNK_SIZE - 1n : latest
-      chunks.push({ from: cur, to: end })
-      cur = end + 1n
+    try {
+      const latest = await client.getBlockNumber()
+      const from = entry.scannedTo > 0n ? entry.scannedTo + 1n : entry.scannedTo
+
+      const chunks: Array<{ from: bigint; to: bigint }> = []
+      let cur = from
+      while (cur <= latest) {
+        const end = cur + CHUNK_SIZE - 1n < latest ? cur + CHUNK_SIZE - 1n : latest
+        chunks.push({ from: cur, to: end })
+        cur = end + 1n
+      }
+
+      for (const { from: f, to } of chunks) {
+        const [contributed, closed, cancelled, withdrawn, withdrawnTo] =
+          await Promise.all([
+            client.getLogs({ address: turnpotAddress, event: EV_CONTRIBUTED,  fromBlock: f, toBlock: to }),
+            client.getLogs({ address: turnpotAddress, event: EV_CLOSED,       fromBlock: f, toBlock: to }),
+            client.getLogs({ address: turnpotAddress, event: EV_CANCELLED,    fromBlock: f, toBlock: to }),
+            client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN,    fromBlock: f, toBlock: to }),
+            client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN_TO, fromBlock: f, toBlock: to }),
+          ])
+
+        const newRows: RawLog[] = []
+
+        for (const log of contributed) {
+          try {
+            const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Contributed', topics: log.topics, data: log.data })
+            newRows.push({ type: 'Contributed', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', potId: d.args.potId, round: d.args.round, member: d.args.member?.toLowerCase() })
+          } catch { /* skip */ }
+        }
+        for (const log of closed) {
+          try {
+            const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundClosed', topics: log.topics, data: log.data })
+            newRows.push({ type: 'RoundClosed', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', potId: d.args.potId, round: d.args.round, recipient: d.args.recipient?.toLowerCase(), amount: d.args.amount })
+          } catch { /* skip */ }
+        }
+        for (const log of cancelled) {
+          try {
+            const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundCancelled', topics: log.topics, data: log.data })
+            newRows.push({ type: 'RoundCancelled', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', potId: d.args.potId, round: d.args.round })
+          } catch { /* skip */ }
+        }
+        for (const log of withdrawn) {
+          try {
+            const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Withdrawn', topics: log.topics, data: log.data })
+            newRows.push({ type: 'Withdrawn', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', account: d.args.account?.toLowerCase(), amount: d.args.amount })
+          } catch { /* skip */ }
+        }
+        for (const log of withdrawnTo) {
+          try {
+            const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'WithdrawnTo', topics: log.topics, data: log.data })
+            newRows.push({ type: 'WithdrawnTo', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', account: d.args.account?.toLowerCase(), amount: d.args.amount })
+          } catch { /* skip */ }
+        }
+
+        entry.rows.push(...newRows)
+      }
+
+      entry.scannedTo = latest
+      // Success — don't try remaining RPCs
+      lastError = undefined
+      break
+    } catch (err) {
+      lastError = err
+      // Try next RPC
     }
-
-    for (const { from: f, to } of chunks) {
-      const [contributed, closed, cancelled, withdrawn, withdrawnTo] =
-        await Promise.all([
-          client.getLogs({ address: turnpotAddress, event: EV_CONTRIBUTED,  fromBlock: f, toBlock: to }),
-          client.getLogs({ address: turnpotAddress, event: EV_CLOSED,       fromBlock: f, toBlock: to }),
-          client.getLogs({ address: turnpotAddress, event: EV_CANCELLED,    fromBlock: f, toBlock: to }),
-          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN,    fromBlock: f, toBlock: to }),
-          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN_TO, fromBlock: f, toBlock: to }),
-        ])
-
-      const newRows: RawLog[] = []
-
-      for (const log of contributed) {
-        try {
-          const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Contributed', topics: log.topics, data: log.data })
-          newRows.push({ type: 'Contributed', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', potId: d.args.potId, round: d.args.round, member: d.args.member?.toLowerCase() })
-        } catch { /* skip */ }
-      }
-
-      for (const log of closed) {
-        try {
-          const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundClosed', topics: log.topics, data: log.data })
-          newRows.push({ type: 'RoundClosed', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', potId: d.args.potId, round: d.args.round, recipient: d.args.recipient?.toLowerCase(), amount: d.args.amount })
-        } catch { /* skip */ }
-      }
-
-      for (const log of cancelled) {
-        try {
-          const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundCancelled', topics: log.topics, data: log.data })
-          newRows.push({ type: 'RoundCancelled', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', potId: d.args.potId, round: d.args.round })
-        } catch { /* skip */ }
-      }
-
-      for (const log of withdrawn) {
-        try {
-          const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Withdrawn', topics: log.topics, data: log.data })
-          newRows.push({ type: 'Withdrawn', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', account: d.args.account?.toLowerCase(), amount: d.args.amount })
-        } catch { /* skip */ }
-      }
-
-      for (const log of withdrawnTo) {
-        try {
-          const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'WithdrawnTo', topics: log.topics, data: log.data })
-          newRows.push({ type: 'WithdrawnTo', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', account: d.args.account?.toLowerCase(), amount: d.args.amount })
-        } catch { /* skip */ }
-      }
-
-      entry.rows.push(...newRows)
-    }
-
-    entry.scannedTo = latest
-  } catch {
-    // Network error — leave partial state, allow retry
-  } finally {
-    entry.loading = false
-    entry.listeners.forEach((fn) => fn())
   }
+
+  if (lastError !== undefined) {
+    entry.failed = true
+  }
+
+  entry.loading = false
+  entry.listeners.forEach((fn) => fn())
 }
 
-// ── Determine which pots a wallet paid in (for RoundCancelled filtering) ──────
+// ── Determine which pots a wallet paid in ─────────────────────────────────────
 function getPotsPaidIn(rows: RawLog[], walletLower: string): Set<bigint> {
   const s = new Set<bigint>()
   for (const r of rows) {
@@ -196,7 +222,6 @@ function toActivityRows(rows: RawLog[], walletLower: string, contribution: (potI
     } else if (r.type === 'RoundClosed' && r.recipient === walletLower) {
       result.push({ type: 'ReceivedPot', potId: r.potId ?? null, amount: r.amount ?? 0n, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
     } else if (r.type === 'RoundCancelled' && r.potId !== undefined && potsPaidIn.has(r.potId)) {
-      // Refund amount = contribution for that pot (we pass in a getter)
       const refund = contribution(r.potId)
       result.push({ type: 'RefundCredited', potId: r.potId, amount: refund, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
     } else if ((r.type === 'Withdrawn' || r.type === 'WithdrawnTo') && r.account === walletLower) {
@@ -208,43 +233,15 @@ function toActivityRows(rows: RawLog[], walletLower: string, contribution: (potI
   return result
 }
 
-// ── Protocol stats from all raw rows ─────────────────────────────────────────
-export interface ProtocolStats {
-  potCount: number        // max potId seen + 1 (proxy; accurate once all pots are scanned)
-  txCount: number         // total unique txHashes
-  totalUsdc: bigint       // sum of all Contributed amounts
-  loading: boolean
-}
-
-function calcStats(rows: RawLog[], loading: boolean): ProtocolStats {
-  let maxPotId = -1n
-  const txHashes = new Set<string>()
-  let total = 0n
-
-  for (const r of rows) {
-    if (r.potId !== undefined && r.potId > maxPotId) maxPotId = r.potId
-    if (r.txHash && r.txHash !== '0x') txHashes.add(r.txHash)
-    if (r.type === 'Contributed' && r.amount !== undefined) total += r.amount
-  }
-
-  return {
-    potCount: maxPotId >= 0n ? Number(maxPotId) + 1 : 0,
-    txCount: txHashes.size,
-    totalUsdc: total,
-    loading,
-  }
-}
-
 // ── Shared trigger ref for manual refresh ─────────────────────────────────────
 type RefreshFn = () => void
 const _refreshListeners = new Set<RefreshFn>()
 
-/** Call this after any confirmed TurnPot transaction to re-scan logs. */
 export function refreshActivityLogs() {
   _refreshListeners.forEach((fn) => fn())
 }
 
-// ── Hook: subscribe to cache updates for a given chain ───────────────────────
+// ── Hook: subscribe to cache updates for a given chain ────────────────────────
 function useCacheSubscribe(chainId: number | undefined, turnpotAddress: string) {
   const [, forceUpdate] = useState(0)
 
@@ -258,9 +255,7 @@ function useCacheSubscribe(chainId: number | undefined, turnpotAddress: string) 
     const entry = getOrCreate(chainId)
     const update = () => forceUpdate((n) => n + 1)
     entry.listeners.add(update)
-    // Register as a refresh listener
     _refreshListeners.add(doFetch)
-    // Initial fetch if cache is cold
     if (entry.scannedTo === (DEPLOY_BLOCK[chainId] ?? 0n) && entry.rows.length === 0 && !entry.loading) {
       void fetchLogs(chainId, turnpotAddress as `0x${string}`)
     }
@@ -272,13 +267,11 @@ function useCacheSubscribe(chainId: number | undefined, turnpotAddress: string) 
 
   const refresh = useCallback(() => {
     if (!chainId || !turnpotAddress) return
-    // Reset scanned range to re-check tip blocks only (keep existing rows)
-    // Actually we want to append new blocks — just re-trigger
     void fetchLogs(chainId, turnpotAddress as `0x${string}`)
   }, [chainId, turnpotAddress])
 
   const entry = chainId ? CACHE.get(chainId) : undefined
-  return { rows: entry?.rows ?? [], loading: entry?.loading ?? false, refresh }
+  return { rows: entry?.rows ?? [], loading: entry?.loading ?? false, failed: entry?.failed ?? false, refresh }
 }
 
 // ── Public hook: wallet activity ─────────────────────────────────────────────
@@ -287,35 +280,15 @@ export function useWalletActivity(address: `0x${string}` | undefined) {
   const cfg = chainId !== undefined ? CHAIN_CONFIGS[chainId] : undefined
   const turnpotAddress = cfg?.turnpotAddress ?? ''
 
-  const { rows, loading, refresh } = useCacheSubscribe(
+  const { rows, loading, failed, refresh } = useCacheSubscribe(
     cfg ? chainId : undefined,
     turnpotAddress,
   )
 
   const walletLower = address?.toLowerCase() ?? ''
-
-  // We don't have contribution amounts per pot here — use 0n for refunds (amount
-  // not tracked in the event; show as "refund" without amount)
   const activity = walletLower
     ? toActivityRows(rows, walletLower, () => 0n)
     : []
 
-  return { activity, loading, refresh }
-}
-
-// ── Public hook: protocol stats ───────────────────────────────────────────────
-export function useProtocolStats() {
-  const { chainId } = useAccount()
-
-  // Also works when disconnected — fall back to mainnet config
-  const effectiveChainId = chainId !== undefined ? chainId : arcMainnet.id
-  const cfg = CHAIN_CONFIGS[effectiveChainId]
-  const turnpotAddress = cfg?.turnpotAddress ?? ''
-
-  const { rows, loading, refresh } = useCacheSubscribe(
-    turnpotAddress ? effectiveChainId : undefined,
-    turnpotAddress,
-  )
-
-  return { stats: calcStats(rows, loading), refresh }
+  return { activity, loading, failed, refresh }
 }

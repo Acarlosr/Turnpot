@@ -1,9 +1,10 @@
 /**
- * ProtocolStats — aggregate numbers from TurnPot contract events.
+ * ProtocolStats — aggregate numbers from on-chain view calls (no getLogs).
  * Shown on Home, visible connected or disconnected.
+ * Shows skeleton while loading, "—" + Retry on network failure.
  */
-import { ExternalLink } from 'lucide-react'
-import { useProtocolStats } from '@/hooks/useActivityLogs'
+import { ExternalLink, RotateCcw } from 'lucide-react'
+import { useProtocolStats } from '@/hooks/useProtocolStats'
 import { useActiveChainConfig } from '@/lib/chain'
 import { fmtUsdc } from '@/lib/format'
 import { useI18n } from '@/i18n'
@@ -12,10 +13,14 @@ function StatItem({
   label,
   value,
   loading,
+  failed,
+  onRetry,
 }: {
   label: string
   value: string
   loading: boolean
+  failed: boolean
+  onRetry?: () => void
 }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
@@ -30,6 +35,20 @@ function StatItem({
           className="mt-1 h-5 w-16 animate-pulse rounded"
           style={{ background: 'var(--border)' }}
         />
+      ) : failed ? (
+        <span className="flex items-center gap-1">
+          <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--subtle)' }}>—</span>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="flex items-center gap-0.5 text-xs"
+              style={{ color: 'var(--brand)' }}
+              aria-label="Retry"
+            >
+              <RotateCcw className="size-3" />
+            </button>
+          )}
+        </span>
       ) : (
         <span
           className="text-lg font-bold tabular-nums"
@@ -42,10 +61,21 @@ function StatItem({
   )
 }
 
-export default function ProtocolStats() {
-  const { stats } = useProtocolStats()
+export interface ProtocolStatsFailed {
+  failed: boolean
+}
+
+interface ProtocolStatsProps {
+  onFailedChange?: (failed: boolean) => void
+}
+
+export default function ProtocolStats({ onFailedChange }: ProtocolStatsProps) {
+  const { potCount, txCount, totalUsdc, loading, failed } = useProtocolStats()
   const { turnpotAddress, explorerBase, isDeployed } = useActiveChainConfig()
   const { t } = useI18n()
+
+  // Notify parent of failure state changes (for BlockedBanner)
+  if (onFailedChange) onFailedChange(failed)
 
   if (!isDeployed) return null
 
@@ -53,6 +83,7 @@ export default function ProtocolStats() {
     ? `${explorerBase}/address/${turnpotAddress}`
     : null
 
+  // No retry available for view-call stats — wagmi will auto-retry
   return (
     <div
       className="rounded-3xl p-5"
@@ -86,22 +117,25 @@ export default function ProtocolStats() {
         <div className="pr-3">
           <StatItem
             label={t('stats.pots')}
-            value={stats.potCount.toLocaleString()}
-            loading={stats.loading}
+            value={potCount.toLocaleString()}
+            loading={loading}
+            failed={failed}
           />
         </div>
         <div className="px-3">
           <StatItem
             label={t('stats.transactions')}
-            value={stats.txCount.toLocaleString()}
-            loading={stats.loading}
+            value={txCount.toLocaleString()}
+            loading={loading}
+            failed={failed}
           />
         </div>
         <div className="pl-3">
           <StatItem
             label={t('stats.totalUsdc')}
-            value={`${fmtUsdc(stats.totalUsdc)}`}
-            loading={stats.loading}
+            value={fmtUsdc(totalUsdc)}
+            loading={loading}
+            failed={failed}
           />
         </div>
       </div>

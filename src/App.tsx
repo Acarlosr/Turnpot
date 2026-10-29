@@ -7,11 +7,13 @@ import TurnPotLogo from '@/components/TurnPotLogo'
 import { fmtAddr } from '@/lib/format'
 import { useRouter } from '@/hooks/useRouter'
 import { useI18n } from '@/i18n'
+import { useProtocolStats } from '@/hooks/useProtocolStats'
 import NetworkPill from '@/components/NetworkPill'
 import ThemeToggle from '@/components/ThemeToggle'
 import HeaderBalance from '@/components/HeaderBalance'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import WalletDrawer from '@/components/WalletDrawer'
+import BlockedBanner from '@/components/BlockedBanner'
 import HomeView from '@/pages/Home'
 import CreatePot from '@/pages/CreatePot'
 import PotPage from '@/pages/PotPage'
@@ -23,6 +25,7 @@ export default function App() {
   const { isDeployed, isKnown } = useActiveChainConfig()
   const { t } = useI18n()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const { failed: readsFailed } = useProtocolStats()
 
   const isDeployRoute = route.name === 'deploy'
 
@@ -148,6 +151,13 @@ export default function App() {
           >
             {t('banner.deployNow')}
           </a>
+        </div>
+      )}
+
+      {/* ── Blocked reads banner ── */}
+      {readsFailed && !isDeployRoute && (
+        <div className="mx-auto w-full max-w-lg px-4 pt-4 sm:px-6">
+          <BlockedBanner show={readsFailed} />
         </div>
       )}
 
