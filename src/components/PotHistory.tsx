@@ -159,6 +159,7 @@ function decodeLogs(
   },
   memberSet: Set<string>,
   t: (k: string, v?: Record<string, string>) => string,
+  contributionAmount: bigint,
 ): HistoryEntry[] {
   const all: HistoryEntry[] = []
 
@@ -169,7 +170,7 @@ function decodeLogs(
         kind: 'Contributed',
         blockNumber: log.blockNumber ?? 0n,
         txHash: log.transactionHash ?? '0x',
-        label: t('history.contributed', { round: String(Number(d.args.round) + 1), addr: fmtAddr(d.args.member), amount: '—' }),
+        label: t('history.contributed', { round: String(Number(d.args.round) + 1), addr: fmtAddr(d.args.member), amount: fmtUsdc(contributionAmount) }),
         timeLabel: '',
       })
     } catch { /* skip */ }
@@ -220,9 +221,10 @@ function decodeLogs(
 interface PotHistoryProps {
   potId: bigint
   members: readonly `0x${string}`[]
+  contribution: bigint
 }
 
-export default function PotHistory({ potId, members }: PotHistoryProps) {
+export default function PotHistory({ potId, members, contribution }: PotHistoryProps) {
   const { chainId: activeChainId, turnpotAddress, isTestnet } = useActiveChainConfig()
   // usePublicClient is used ONLY for getBlock (timestamps) — NOT for getLogs.
   // getLogs always goes through getLogsClient (logs-client.ts) to avoid hitting
@@ -284,7 +286,7 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
         return
       }
 
-      const decoded = decodeLogs(result, memberSet.current, t)
+      const decoded = decodeLogs(result, memberSet.current, t, contribution)
       decoded.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : 0))
       setEntries(decoded)
 
@@ -324,7 +326,7 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
       return
     }
 
-    const decoded = decodeLogs(result, memberSet.current, t)
+    const decoded = decodeLogs(result, memberSet.current, t, contribution)
     decoded.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : 0))
     setEntries((prev) => [...prev, ...decoded])
 
