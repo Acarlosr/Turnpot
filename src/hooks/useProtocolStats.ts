@@ -59,7 +59,7 @@ export function useProtocolStats(): ProtocolStatsData {
     abi: base.abi,
     chainId: base.chainId,
     functionName: 'potCount',
-    query: { enabled: base.enabled },
+    query: { enabled: base.enabled, staleTime: 30_000, refetchInterval: false as const },
   })
 
   const potCount = rawPotCount !== undefined ? Number(rawPotCount) : undefined
@@ -84,6 +84,8 @@ export function useProtocolStats(): ProtocolStatsData {
     })),
     query: {
       enabled: base.enabled && potIds.length > 0,
+      staleTime: 30_000,
+      refetchInterval: false as const,
     },
   })
 

@@ -144,7 +144,7 @@ export default function WalletDrawer({ open, onClose }: WalletDrawerProps) {
   const { turnpotAddress, chainId: activeChainId, explorerBase } = useActiveChainConfig()
 
   // Balances
-  const { data: nativeBalance } = useBalance({ address, chainId, query: { enabled: !!address } })
+  const { data: nativeBalance } = useBalance({ address, chainId, query: { enabled: !!address, staleTime: 30_000, refetchInterval: false as const } })
   const { data: withdrawable, refetch: refetchWithdrawable } = useWithdrawableBalance(address)
 
   // Activity

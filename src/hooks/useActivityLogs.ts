@@ -1,71 +1,53 @@
 /**
- * useActivityLogs — fetches all TurnPot contract events, chunked in 5 000-block
- * windows, cached in memory per chainId, refreshed on demand.
+ * useActivityLogs — fetches TurnPot contract events for the wallet activity drawer.
  *
- * Ad-blocker resilience: tries each RPC in the fallback list in turn; marks the
- * cache entry as `failed` only when every RPC is unreachable.
+ * RPC strategy:
+ *   - eth_getLogs goes ONLY to the public Arc RPC (rpc.mainnet.arc.io / testnet).
+ *     VITE_RPC_MAINNET (Chainstack full-node) is intentionally excluded — it rejects
+ *     archive getLogs with -32002 on standard plans.
+ *   - 2000-block chunks, one request at a time, 300ms pause between chunks.
+ *   - Backoff on 429: 2s → 4s → 8s, then fail the chunk.
  *
- * Events captured:
- *   Contributed(potId, round, member)
- *   RoundClosed(potId, round, recipient, amount)
- *   RoundCancelled(potId, round)
- *   Withdrawn(account, amount)
- *   WithdrawnTo(account, recipient, amount)
+ * Persistence:
+ *   - Decoded rows + last scanned block are stored in localStorage, keyed by
+ *     chainId + contract address.  Next visit only fetches from lastScannedBlock+1.
  *
- * Consumers:
- *   useWalletActivity(address) — rows for the wallet drawer
- *   (Protocol stats now live in useProtocolStats — view-call based, not getLogs)
+ * Chain guard:
+ *   - Only runs queries for the wallet's active chain.
+ *   - Never queries testnet (5042002) when active chain is mainnet (5042).
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { createPublicClient, http, parseAbiItem, decodeEventLog } from 'viem'
+import { parseAbiItem, decodeEventLog } from 'viem'
 import { useAccount } from 'wagmi'
 import { CHAIN_CONFIGS, arcMainnet, arcTestnet } from '@/lib/chain'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
+import {
+  LOGS_RPCS,
+  getLogsClient,
+  logsWithBackoff,
+  sleep,
+  BETWEEN_CHUNKS_MS,
+  loadFromStorage,
+  saveToStorage,
+} from '@/lib/logs-client'
 
-// ── Deploy blocks (start of range to scan) ────────────────────────────────────
+// ── Deploy blocks ─────────────────────────────────────────────────────────────
 const DEPLOY_BLOCK: Record<number, bigint> = {
   [arcMainnet.id]: 27_849_693n,
   [arcTestnet.id]: 0n,
 }
 const CHUNK_SIZE = 2_000n
-const MAX_RPC_RETRIES = 3
 
-// ── Fallback RPC lists per chain ─────────────────────────────────────────────
-// Lazily built so VITE_RPC_MAINNET / VITE_RPC_TESTNET env vars (read at module
-// load time into CHAIN_CONFIGS[id].rpcUrl) are always at position 0.
-function getFallbackRpcs(chainId: number): string[] {
-  const primary = CHAIN_CONFIGS[chainId]?.rpcUrl
-  if (chainId === arcMainnet.id) {
-    const list = [
-      'https://rpc.mainnet.arc.io',
-      'https://rpc.drpc.mainnet.arc.io',
-      'https://rpc.quicknode.mainnet.arc.io',
-      'https://rpc.blockdaemon.mainnet.arc.io',
-    ]
-    // Put env-override first only if it differs from the hardcoded primary
-    return primary && primary !== list[0] ? [primary, ...list] : list
-  }
-  if (chainId === arcTestnet.id) {
-    const list = ['https://rpc.testnet.arc.io']
-    return primary && primary !== list[0] ? [primary, ...list] : list
-  }
-  return primary ? [primary] : []
-}
-
-// ── Event topic selectors ─────────────────────────────────────────────────────
+// ── Event selectors ───────────────────────────────────────────────────────────
 const EV_CONTRIBUTED  = parseAbiItem('event Contributed(uint256 indexed potId, uint256 indexed round, address indexed member)')
 const EV_CLOSED       = parseAbiItem('event RoundClosed(uint256 indexed potId, uint256 round, address indexed recipient, uint256 amount)')
 const EV_CANCELLED    = parseAbiItem('event RoundCancelled(uint256 indexed potId, uint256 round)')
 const EV_WITHDRAWN    = parseAbiItem('event Withdrawn(address indexed account, uint256 amount)')
 const EV_WITHDRAWN_TO = parseAbiItem('event WithdrawnTo(address indexed account, address indexed recipient, uint256 amount)')
 
-// ── Normalised log rows ───────────────────────────────────────────────────────
-export type ActivityType =
-  | 'Contributed'
-  | 'ReceivedPot'
-  | 'RefundCredited'
-  | 'Withdrawn'
+// ── Types ─────────────────────────────────────────────────────────────────────
+export type ActivityType = 'Contributed' | 'ReceivedPot' | 'RefundCredited' | 'Withdrawn'
 
 export interface ActivityRow {
   type: ActivityType
@@ -77,9 +59,22 @@ export interface ActivityRow {
   actor: string
 }
 
-// ── Raw decoded types ─────────────────────────────────────────────────────────
+// Raw decoded log row (what we persist to localStorage)
 interface RawLog {
   type: 'Contributed' | 'RoundClosed' | 'RoundCancelled' | 'Withdrawn' | 'WithdrawnTo'
+  blockNumber: string   // stored as decimal string (JSON can't handle bigint)
+  txHash: string
+  potId?: string
+  round?: string
+  member?: string
+  recipient?: string
+  amount?: string
+  account?: string
+}
+
+// In-memory row (bigints restored from strings)
+interface MemRow {
+  type: RawLog['type']
   blockNumber: bigint
   txHash: `0x${string}`
   potId?: bigint
@@ -90,9 +85,37 @@ interface RawLog {
   account?: string
 }
 
-// ── Cache ─────────────────────────────────────────────────────────────────────
+function rawToMem(r: RawLog): MemRow {
+  return {
+    type: r.type,
+    blockNumber: BigInt(r.blockNumber),
+    txHash: r.txHash as `0x${string}`,
+    potId:  r.potId  !== undefined ? BigInt(r.potId)  : undefined,
+    round:  r.round  !== undefined ? BigInt(r.round)  : undefined,
+    amount: r.amount !== undefined ? BigInt(r.amount) : undefined,
+    member:    r.member,
+    recipient: r.recipient,
+    account:   r.account,
+  }
+}
+
+function memToRaw(m: MemRow): RawLog {
+  return {
+    type:      m.type,
+    blockNumber: m.blockNumber.toString(),
+    txHash:    m.txHash,
+    potId:     m.potId?.toString(),
+    round:     m.round?.toString(),
+    amount:    m.amount?.toString(),
+    member:    m.member,
+    recipient: m.recipient,
+    account:   m.account,
+  }
+}
+
+// ── In-memory cache ───────────────────────────────────────────────────────────
 interface CacheEntry {
-  rows: RawLog[]
+  rows: MemRow[]
   scannedTo: bigint
   loading: boolean
   failed: boolean
@@ -101,11 +124,17 @@ interface CacheEntry {
 
 const CACHE = new Map<number, CacheEntry>()
 
-function getOrCreate(chainId: number): CacheEntry {
+function getOrCreate(chainId: number, turnpotAddress: string): CacheEntry {
   if (!CACHE.has(chainId)) {
+    // Hydrate from localStorage on first access
+    const stored = loadFromStorage<RawLog>(chainId, turnpotAddress)
+    const rows = stored ? stored.rows.map(rawToMem) : []
+    const scannedTo = stored
+      ? BigInt(stored.scannedTo)
+      : (DEPLOY_BLOCK[chainId] ?? 0n)
     CACHE.set(chainId, {
-      rows: [],
-      scannedTo: DEPLOY_BLOCK[chainId] ?? 0n,
+      rows,
+      scannedTo,
       loading: false,
       failed: false,
       listeners: new Set(),
@@ -114,79 +143,55 @@ function getOrCreate(chainId: number): CacheEntry {
   return CACHE.get(chainId)!
 }
 
-// ── Exponential backoff helper ────────────────────────────────────────────────
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-/** Retry fn up to MAX_RPC_RETRIES times with exponential backoff on 429/400. */
-async function fetchWithBackoff<T>(fn: () => Promise<T>): Promise<T> {
-  let delay = 1_000
-  let lastErr: unknown
-  for (let i = 0; i < MAX_RPC_RETRIES; i++) {
-    try {
-      return await fn()
-    } catch (err) {
-      lastErr = err
-      const msg = err instanceof Error ? err.message : String(err)
-      const isRateLimit = msg.includes('429') || msg.includes('400') || msg.includes('rate') || msg.includes('limit')
-      if (i < MAX_RPC_RETRIES - 1) {
-        await sleep(isRateLimit ? delay : 300)
-        if (isRateLimit) delay *= 2
-      }
-    }
-  }
-  throw lastErr
-}
-
-// ── Core fetch function (tries each RPC in turn) ──────────────────────────────
+// ── Core fetch ────────────────────────────────────────────────────────────────
 async function fetchLogs(chainId: number, turnpotAddress: `0x${string}`) {
-  const entry = getOrCreate(chainId)
+  const entry = getOrCreate(chainId, turnpotAddress)
   if (entry.loading) return
   entry.loading = true
-  entry.failed = false
+  entry.failed  = false
   entry.listeners.forEach((fn) => fn())
 
   const cfg = CHAIN_CONFIGS[chainId]
   if (!cfg) { entry.loading = false; return }
 
-  const rpcs = getFallbackRpcs(chainId)
+  const rpcs = LOGS_RPCS[chainId] ?? []
+  if (rpcs.length === 0) { entry.loading = false; return }
 
   let lastError: unknown
-  for (const rpcUrl of rpcs) {
-    const client = createPublicClient({
-      chain: cfg.chain,
-      transport: http(rpcUrl, { retryCount: 1, timeout: 8_000 }),
-    })
 
+  for (const rpcUrl of rpcs) {
+    const client = getLogsClient(chainId, rpcUrl)
     try {
       const latest = await client.getBlockNumber()
-      const from = entry.scannedTo > 0n ? entry.scannedTo + 1n : entry.scannedTo
+      const from   = entry.scannedTo > 0n ? entry.scannedTo + 1n : entry.scannedTo
 
-      const chunks: Array<{ from: bigint; to: bigint }> = []
-      let cur = from
-      while (cur <= latest) {
-        const end = cur + CHUNK_SIZE - 1n < latest ? cur + CHUNK_SIZE - 1n : latest
-        chunks.push({ from: cur, to: end })
-        cur = end + 1n
+      if (from > latest) {
+        // Nothing new to scan
+        lastError = undefined
+        break
       }
 
-      for (const { from: f, to } of chunks) {
-        // Sequential calls (not parallel) to avoid overwhelming the RPC with
-        // 5 concurrent getLogs requests per chunk.
-        const contributed = await fetchWithBackoff(() =>
-          client.getLogs({ address: turnpotAddress, event: EV_CONTRIBUTED,  fromBlock: f, toBlock: to }))
-        const closed = await fetchWithBackoff(() =>
-          client.getLogs({ address: turnpotAddress, event: EV_CLOSED,       fromBlock: f, toBlock: to }))
-        const cancelled = await fetchWithBackoff(() =>
-          client.getLogs({ address: turnpotAddress, event: EV_CANCELLED,    fromBlock: f, toBlock: to }))
-        const withdrawn = await fetchWithBackoff(() =>
-          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN,    fromBlock: f, toBlock: to }))
-        const withdrawnTo = await fetchWithBackoff(() =>
-          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN_TO, fromBlock: f, toBlock: to }))
+      let cur = from
+      while (cur <= latest) {
+        const to = cur + CHUNK_SIZE - 1n < latest ? cur + CHUNK_SIZE - 1n : latest
 
-        const newRows: RawLog[] = []
+        // Sequential — one event type at a time, 300ms between chunks
+        const contributed = await logsWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_CONTRIBUTED,  fromBlock: cur, toBlock: to }))
+        await sleep(BETWEEN_CHUNKS_MS)
+        const closed = await logsWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_CLOSED,       fromBlock: cur, toBlock: to }))
+        await sleep(BETWEEN_CHUNKS_MS)
+        const cancelled = await logsWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_CANCELLED,    fromBlock: cur, toBlock: to }))
+        await sleep(BETWEEN_CHUNKS_MS)
+        const withdrawn = await logsWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN,    fromBlock: cur, toBlock: to }))
+        await sleep(BETWEEN_CHUNKS_MS)
+        const withdrawnTo = await logsWithBackoff(() =>
+          client.getLogs({ address: turnpotAddress, event: EV_WITHDRAWN_TO, fromBlock: cur, toBlock: to }))
+
+        const newRows: MemRow[] = []
 
         for (const log of contributed) {
           try {
@@ -220,10 +225,19 @@ async function fetchLogs(chainId: number, turnpotAddress: `0x${string}`) {
         }
 
         entry.rows.push(...newRows)
+        entry.scannedTo = to
+        cur = to + 1n
+
+        // Persist after each chunk so partial progress is not lost
+        saveToStorage<RawLog>(chainId, turnpotAddress, entry.scannedTo, entry.rows.map(memToRaw))
+
+        // Notify subscribers so UI updates incrementally
+        entry.listeners.forEach((fn) => fn())
+
+        if (cur <= latest) await sleep(BETWEEN_CHUNKS_MS)
       }
 
       entry.scannedTo = latest
-      // Success — don't try remaining RPCs
       lastError = undefined
       break
     } catch (err) {
@@ -232,16 +246,13 @@ async function fetchLogs(chainId: number, turnpotAddress: `0x${string}`) {
     }
   }
 
-  if (lastError !== undefined) {
-    entry.failed = true
-  }
-
+  if (lastError !== undefined) entry.failed = true
   entry.loading = false
   entry.listeners.forEach((fn) => fn())
 }
 
-// ── Determine which pots a wallet paid in ─────────────────────────────────────
-function getPotsPaidIn(rows: RawLog[], walletLower: string): Set<bigint> {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getPotsPaidIn(rows: MemRow[], walletLower: string): Set<bigint> {
   const s = new Set<bigint>()
   for (const r of rows) {
     if (r.type === 'Contributed' && r.member === walletLower && r.potId !== undefined) {
@@ -251,21 +262,19 @@ function getPotsPaidIn(rows: RawLog[], walletLower: string): Set<bigint> {
   return s
 }
 
-// ── Map raw logs → ActivityRow for a given wallet ─────────────────────────────
-function toActivityRows(rows: RawLog[], walletLower: string, contribution: (potId: bigint) => bigint): ActivityRow[] {
+function toActivityRows(rows: MemRow[], walletLower: string): ActivityRow[] {
   const potsPaidIn = getPotsPaidIn(rows, walletLower)
   const result: ActivityRow[] = []
 
   for (const r of rows) {
     if (r.type === 'Contributed' && r.member === walletLower) {
-      result.push({ type: 'Contributed', potId: r.potId ?? null, amount: r.amount ?? 0n, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
+      result.push({ type: 'Contributed',     potId: r.potId ?? null,  amount: r.amount ?? 0n, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
     } else if (r.type === 'RoundClosed' && r.recipient === walletLower) {
-      result.push({ type: 'ReceivedPot', potId: r.potId ?? null, amount: r.amount ?? 0n, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
+      result.push({ type: 'ReceivedPot',     potId: r.potId ?? null,  amount: r.amount ?? 0n, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
     } else if (r.type === 'RoundCancelled' && r.potId !== undefined && potsPaidIn.has(r.potId)) {
-      const refund = contribution(r.potId)
-      result.push({ type: 'RefundCredited', potId: r.potId, amount: refund, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
+      result.push({ type: 'RefundCredited',  potId: r.potId,          amount: 0n,             blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
     } else if ((r.type === 'Withdrawn' || r.type === 'WithdrawnTo') && r.account === walletLower) {
-      result.push({ type: 'Withdrawn', potId: null, amount: r.amount ?? 0n, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
+      result.push({ type: 'Withdrawn',       potId: null,             amount: r.amount ?? 0n, blockNumber: r.blockNumber, txHash: r.txHash, timestamp: 0, actor: walletLower })
     }
   }
 
@@ -273,15 +282,12 @@ function toActivityRows(rows: RawLog[], walletLower: string, contribution: (potI
   return result
 }
 
-// ── Shared trigger ref for manual refresh ─────────────────────────────────────
+// ── Shared manual-refresh trigger ─────────────────────────────────────────────
 type RefreshFn = () => void
 const _refreshListeners = new Set<RefreshFn>()
+export function refreshActivityLogs() { _refreshListeners.forEach((fn) => fn()) }
 
-export function refreshActivityLogs() {
-  _refreshListeners.forEach((fn) => fn())
-}
-
-// ── Hook: subscribe to cache updates for a given chain ────────────────────────
+// ── Internal subscribe hook ───────────────────────────────────────────────────
 function useCacheSubscribe(chainId: number | undefined, turnpotAddress: string) {
   const [, forceUpdate] = useState(0)
 
@@ -292,13 +298,14 @@ function useCacheSubscribe(chainId: number | undefined, turnpotAddress: string) 
 
   useEffect(() => {
     if (!chainId || !turnpotAddress) return
-    const entry = getOrCreate(chainId)
+    const entry = getOrCreate(chainId, turnpotAddress)
     const update = () => forceUpdate((n) => n + 1)
     entry.listeners.add(update)
     _refreshListeners.add(doFetch)
-    if (entry.scannedTo === (DEPLOY_BLOCK[chainId] ?? 0n) && entry.rows.length === 0 && !entry.loading) {
-      void fetchLogs(chainId, turnpotAddress as `0x${string}`)
-    }
+
+    // Kick off a scan if we haven't scanned to the latest block yet
+    if (!entry.loading) void fetchLogs(chainId, turnpotAddress as `0x${string}`)
+
     return () => {
       entry.listeners.delete(update)
       _refreshListeners.delete(doFetch)
@@ -314,9 +321,10 @@ function useCacheSubscribe(chainId: number | undefined, turnpotAddress: string) 
   return { rows: entry?.rows ?? [], loading: entry?.loading ?? false, failed: entry?.failed ?? false, refresh }
 }
 
-// ── Public hook: wallet activity ─────────────────────────────────────────────
+// ── Public hook ───────────────────────────────────────────────────────────────
 export function useWalletActivity(address: `0x${string}` | undefined) {
   const { chainId } = useAccount()
+  // Guard: only run for known Arc chains, never query testnet on mainnet
   const cfg = chainId !== undefined ? CHAIN_CONFIGS[chainId] : undefined
   const turnpotAddress = cfg?.turnpotAddress ?? ''
 
@@ -326,9 +334,7 @@ export function useWalletActivity(address: `0x${string}` | undefined) {
   )
 
   const walletLower = address?.toLowerCase() ?? ''
-  const activity = walletLower
-    ? toActivityRows(rows, walletLower, () => 0n)
-    : []
+  const activity = walletLower ? toActivityRows(rows, walletLower) : []
 
   return { activity, loading, failed, refresh }
 }

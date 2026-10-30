@@ -22,13 +22,19 @@ import { useActiveChainConfig, explorerTx } from '@/lib/chain'
 import { fmtUsdc, fmtAddr } from '@/lib/format'
 import { ExternalLink, RefreshCw } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import {
+  LOGS_RPCS,
+  getLogsClient,
+  logsWithBackoff,
+  sleep,
+  BETWEEN_CHUNKS_MS,
+} from '@/lib/logs-client'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const MAINNET_DEPLOY_BLOCK = 27_849_693n
 const INITIAL_BLOCKS = 20n      // first load covers last N blocks
 const CHUNK         = 2_000n    // each subsequent "load more" chunk
-const MAX_RETRIES   = 3         // per-chunk retry attempts
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -81,37 +87,32 @@ function fmtRelative(ts: number): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-// ── Backoff helper ────────────────────────────────────────────────────────────
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// Fetch a single block range with exponential backoff on 429/400.
-// Returns null when all retries exhausted.
-async function fetchRangeWithBackoff(
-  client: NonNullable<ReturnType<typeof usePublicClient>>,
+// ── Fetch a single block range via the dedicated logs client ─────────────────
+// Returns null when all retries exhausted (caller shows the busy/retry UI).
+async function fetchRangeWithLogsClient(
+  chainId: number,
   addr: `0x${string}`,
   potId: bigint,
   from: bigint,
   to: bigint,
 ): Promise<{ contributed: RawLog[]; closed: RawLog[]; cancelled: RawLog[]; withdrawn: RawLog[] } | null> {
-  let delay = 1_000
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+  const rpcs = LOGS_RPCS[chainId] ?? []
+  for (const rpcUrl of rpcs) {
+    const client = getLogsClient(chainId, rpcUrl)
     try {
-      // Sequential: one event type at a time to minimise concurrent RPC calls
-      const contributed = (await client.getLogs({
+      // Sequential: one event type at a time + 300ms pause between calls
+      const contributed = (await logsWithBackoff(() => client.getLogs({
         address: addr,
         event: { type: 'event', name: 'Contributed', inputs: [
           { name: 'potId',  type: 'uint256', indexed: true },
           { name: 'round',  type: 'uint256', indexed: true },
           { name: 'member', type: 'address', indexed: true },
         ] } as const,
-        args: { potId },
-        fromBlock: from, toBlock: to,
-      })) as RawLog[]
+        args: { potId }, fromBlock: from, toBlock: to,
+      }))) as RawLog[]
+      await sleep(BETWEEN_CHUNKS_MS)
 
-      const closed = (await client.getLogs({
+      const closed = (await logsWithBackoff(() => client.getLogs({
         address: addr,
         event: { type: 'event', name: 'RoundClosed', inputs: [
           { name: 'potId',     type: 'uint256', indexed: true },
@@ -119,42 +120,32 @@ async function fetchRangeWithBackoff(
           { name: 'recipient', type: 'address', indexed: true },
           { name: 'amount',    type: 'uint256', indexed: false },
         ] } as const,
-        args: { potId },
-        fromBlock: from, toBlock: to,
-      })) as RawLog[]
+        args: { potId }, fromBlock: from, toBlock: to,
+      }))) as RawLog[]
+      await sleep(BETWEEN_CHUNKS_MS)
 
-      const cancelled = (await client.getLogs({
+      const cancelled = (await logsWithBackoff(() => client.getLogs({
         address: addr,
         event: { type: 'event', name: 'RoundCancelled', inputs: [
           { name: 'potId',  type: 'uint256', indexed: true },
           { name: 'round',  type: 'uint256', indexed: false },
         ] } as const,
-        args: { potId },
-        fromBlock: from, toBlock: to,
-      })) as RawLog[]
+        args: { potId }, fromBlock: from, toBlock: to,
+      }))) as RawLog[]
+      await sleep(BETWEEN_CHUNKS_MS)
 
-      const withdrawn = (await client.getLogs({
+      const withdrawn = (await logsWithBackoff(() => client.getLogs({
         address: addr,
         event: { type: 'event', name: 'Withdrawn', inputs: [
           { name: 'account', type: 'address', indexed: true },
           { name: 'amount',  type: 'uint256', indexed: false },
         ] } as const,
         fromBlock: from, toBlock: to,
-      })) as RawLog[]
+      }))) as RawLog[]
 
       return { contributed, closed, cancelled, withdrawn }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      const isRateLimit = msg.includes('429') || msg.includes('400') || msg.includes('rate') || msg.includes('limit')
-      if (attempt < MAX_RETRIES - 1 && isRateLimit) {
-        await sleep(delay)
-        delay *= 2
-      } else if (attempt < MAX_RETRIES - 1) {
-        // Non-rate-limit error — shorter wait then retry
-        await sleep(500)
-      } else {
-        return null
-      }
+    } catch {
+      // Try next RPC in the list
     }
   }
   return null
@@ -233,7 +224,10 @@ interface PotHistoryProps {
 
 export default function PotHistory({ potId, members }: PotHistoryProps) {
   const { chainId: activeChainId, turnpotAddress, isTestnet } = useActiveChainConfig()
-  const client = usePublicClient({ chainId: activeChainId })
+  // usePublicClient is used ONLY for getBlock (timestamps) — NOT for getLogs.
+  // getLogs always goes through getLogsClient (logs-client.ts) to avoid hitting
+  // the Chainstack full-node endpoint which rejects archive getLogs.
+  const wagmiClient = usePublicClient({ chainId: activeChainId })
   const { t } = useI18n()
 
   const deployBlock = isTestnet ? 0n : MAINNET_DEPLOY_BLOCK
@@ -252,10 +246,10 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
 
   // Resolve timestamps for the top N entries
   const resolveTimestamps = useCallback(async (list: HistoryEntry[]) => {
-    if (!client) return
+    if (!wagmiClient) return
     const top = list.slice(0, 20)
     const timestamps = await Promise.all(
-      top.map((e) => getBlockTs(client, activeChainId ?? 0, e.blockNumber)),
+      top.map((e) => getBlockTs(wagmiClient, activeChainId ?? 0, e.blockNumber)),
     )
     setEntries((prev) => {
       const updated = [...prev]
@@ -267,11 +261,11 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
       }
       return updated
     })
-  }, [client, activeChainId])
+  }, [wagmiClient, activeChainId])
 
   // Initial load: last INITIAL_BLOCKS blocks
   const loadInitial = useCallback(async () => {
-    if (!client || !turnpotAddress) return
+    if (!wagmiClient || !turnpotAddress || activeChainId === undefined) return
     setLoading(true)
     setFailed(false)
     setBusyRetries(0)
@@ -279,11 +273,11 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
 
     const addr = turnpotAddress
     try {
-      const latest = await client.getBlockNumber()
+      const latest = await wagmiClient.getBlockNumber()
       const from = latest > INITIAL_BLOCKS ? latest - INITIAL_BLOCKS : deployBlock
       const clampedFrom = from < deployBlock ? deployBlock : from
 
-      const result = await fetchRangeWithBackoff(client, addr, potId, clampedFrom, latest)
+      const result = await fetchRangeWithLogsClient(activeChainId, addr, potId, clampedFrom, latest)
       if (result === null) {
         setFailed(true)
         setLoading(false)
@@ -310,11 +304,11 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
       setLoading(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [potId, client, turnpotAddress, activeChainId, t, deployBlock])
+  }, [potId, wagmiClient, turnpotAddress, activeChainId, t, deployBlock])
 
   // Load more: one 2000-block chunk backwards, sequential
   const loadMore = useCallback(async () => {
-    if (!client || !turnpotAddress || nextFromRef.current === null || loadingMore) return
+    if (!wagmiClient || !turnpotAddress || nextFromRef.current === null || loadingMore || activeChainId === undefined) return
     setLoadingMore(true)
     setBusyRetries(0)
 
@@ -323,7 +317,7 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
     const from  = to >= CHUNK ? to - CHUNK + 1n : deployBlock
     const clampedFrom = from < deployBlock ? deployBlock : from
 
-    const result = await fetchRangeWithBackoff(client, addr, potId, clampedFrom, to)
+    const result = await fetchRangeWithLogsClient(activeChainId, addr, potId, clampedFrom, to)
     if (result === null) {
       setBusyRetries((n) => n + 1)
       setLoadingMore(false)
@@ -345,7 +339,7 @@ export default function PotHistory({ potId, members }: PotHistoryProps) {
     void resolveTimestamps(decoded)
     setLoadingMore(false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [potId, client, turnpotAddress, activeChainId, t, deployBlock, loadingMore])
+  }, [potId, wagmiClient, turnpotAddress, activeChainId, t, deployBlock, loadingMore])
 
   useEffect(() => { void loadInitial() }, [loadInitial])
 
