@@ -16,6 +16,7 @@ import WalletDrawer from '@/components/WalletDrawer'
 import BlockedBanner from '@/components/BlockedBanner'
 import HomeView from '@/pages/Home'
 import MyPotsView from '@/pages/MyPots'
+import HowTo from '@/pages/HowTo'
 import CreatePot from '@/pages/CreatePot'
 import PotPage from '@/pages/PotPage'
 import DeployPage from '@/pages/DeployPage'
@@ -31,6 +32,7 @@ export default function App() {
   const isDeployRoute = route.name === 'deploy'
   const isHomeRoute   = route.name === 'home'
   const isMyPotsRoute = route.name === 'my-pots'
+  const isHowToRoute  = route.name === 'how-to'
 
   // Show banners only outside the deploy page
   const showWrongNetwork = isConnected && !isKnown && !isDeployRoute
@@ -63,37 +65,52 @@ export default function App() {
             </span>
           </button>
 
-          {/* Nav tabs — shown when connected (or always to allow navigation) */}
-          {isConnected && (
-            <nav className="ml-2 flex items-center gap-0.5" aria-label="Main navigation">
-              <button
-                onClick={goHome}
-                className="rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
-                style={isHomeRoute ? {
-                  background: 'var(--selected-bg)',
-                  color: 'var(--selected-text)',
-                } : {
-                  color: 'var(--subtle)',
-                }}
-                aria-current={isHomeRoute ? 'page' : undefined}
-              >
-                {t('nav.home')}
-              </button>
-              <button
-                onClick={() => navigate({ name: 'my-pots' })}
-                className="rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
-                style={isMyPotsRoute ? {
-                  background: 'var(--selected-bg)',
-                  color: 'var(--selected-text)',
-                } : {
-                  color: 'var(--subtle)',
-                }}
-                aria-current={isMyPotsRoute ? 'page' : undefined}
-              >
-                {t('nav.myPots')}
-              </button>
-            </nav>
-          )}
+          {/* Nav tabs — Home + My pots when connected; How to use always */}
+          <nav className="ml-2 flex items-center gap-0.5" aria-label="Main navigation">
+            {isConnected && (
+              <>
+                <button
+                  onClick={goHome}
+                  className="rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
+                  style={isHomeRoute ? {
+                    background: 'var(--selected-bg)',
+                    color: 'var(--selected-text)',
+                  } : {
+                    color: 'var(--subtle)',
+                  }}
+                  aria-current={isHomeRoute ? 'page' : undefined}
+                >
+                  {t('nav.home')}
+                </button>
+                <button
+                  onClick={() => navigate({ name: 'my-pots' })}
+                  className="rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
+                  style={isMyPotsRoute ? {
+                    background: 'var(--selected-bg)',
+                    color: 'var(--selected-text)',
+                  } : {
+                    color: 'var(--subtle)',
+                  }}
+                  aria-current={isMyPotsRoute ? 'page' : undefined}
+                >
+                  {t('nav.myPots')}
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => navigate({ name: 'how-to' })}
+              className="rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
+              style={isHowToRoute ? {
+                background: 'var(--selected-bg)',
+                color: 'var(--selected-text)',
+              } : {
+                color: 'var(--subtle)',
+              }}
+              aria-current={isHowToRoute ? 'page' : undefined}
+            >
+              {t('nav.howTo')}
+            </button>
+          </nav>
         </div>
 
         {/* Right: language | network pill | theme toggle | balance | wallet */}
@@ -211,6 +228,9 @@ export default function App() {
             potId={route.potId}
             onBack={goHome}
           />
+        )}
+        {route.name === 'how-to' && (
+          <HowTo onBack={goHome} />
         )}
         {route.name === 'deploy' && (
           <DeployPage onBack={goHome} />
