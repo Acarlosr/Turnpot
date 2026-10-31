@@ -1,14 +1,14 @@
 /**
  * PotHistory — on-chain event log for a single pot.
  *
- * Load strategy (rate-limit friendly):
- *   1. Initial load: fetch the last INITIAL_BLOCKS blocks (most recent events).
- *   2. "Load more" button: walk backwards in CHUNK-block windows one at a time
- *      (sequential, never parallel) down to the deploy block.
- *   3. Never fromBlock=0; earliest allowed is MAINNET_DEPLOY_BLOCK.
- *   4. RPC errors: exponential backoff 1s→2s→4s before showing the error state.
+ * Load strategy:
+ *   1. Try the Arc explorer API (module=logs&action=getLogs, paginated by 1000).
+ *      Timestamp comes directly from the API response — no extra getBlock calls.
+ *      If the API returns all events, "Load earlier events" button is hidden.
+ *   2. On API failure (CORS, network, non-OK), fall back to the RPC getLogs scan
+ *      in 2000-block chunks with a "Load earlier events" button.
  *
- * Events:
+ * Events decoded:
  *   Contributed(potId indexed, round indexed, member indexed)
  *   RoundClosed(potId indexed, round, recipient indexed, amount)
  *   RoundCancelled(potId indexed, round)
@@ -19,6 +19,7 @@ import { usePublicClient } from 'wagmi'
 import { decodeEventLog } from 'viem'
 import { TURNPOT_ABI } from '@/lib/turnpot-abi'
 import { useActiveChainConfig, explorerTx } from '@/lib/chain'
+import { arcMainnet, arcTestnet } from '@/lib/chain'
 import { fmtUsdc, fmtAddr } from '@/lib/format'
 import { ExternalLink, RefreshCw } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -29,35 +30,39 @@ import {
   sleep,
   BETWEEN_CHUNKS_MS,
 } from '@/lib/logs-client'
+import { fetchExplorerLogs, type ExplorerLog } from '@/lib/explorer-api'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MAINNET_DEPLOY_BLOCK = 27_849_693n
-const INITIAL_BLOCKS = 20n      // first load covers last N blocks
-const CHUNK         = 2_000n    // each subsequent "load more" chunk
+const DEPLOY_BLOCK: Record<number, bigint> = {
+  [arcMainnet.id]: 27_849_693n,
+  [arcTestnet.id]: 0n,
+}
+const INITIAL_BLOCKS = 20n
+const CHUNK          = 2_000n
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type EventKind = 'Contributed' | 'RoundClosed' | 'RoundCancelled' | 'Withdrawn'
 
 interface HistoryEntry {
-  kind: EventKind
+  kind:        EventKind
   blockNumber: bigint
-  txHash: `0x${string}`
-  label: string
-  timeLabel: string
+  txHash:      `0x${string}`
+  label:       string
+  timeLabel:   string
 }
 
-// ── Raw log shape ─────────────────────────────────────────────────────────────
+// ── RawLog shape used by the RPC fallback path ────────────────────────────────
 
 interface RawLog {
-  blockNumber: bigint | null
+  blockNumber:     bigint | null
   transactionHash: `0x${string}` | null
-  topics: [`0x${string}`, ...`0x${string}`[]] | []
-  data: `0x${string}`
+  topics:          [`0x${string}`, ...`0x${string}`[]] | []
+  data:            `0x${string}`
 }
 
-// ── Block timestamp cache ─────────────────────────────────────────────────────
+// ── Timestamp helpers ─────────────────────────────────────────────────────────
 
 const tsCache = new Map<string, number>()
 
@@ -73,9 +78,14 @@ async function getBlockTs(
     const ts = Number(blk.timestamp)
     tsCache.set(key, ts)
     return ts
-  } catch {
-    return 0
-  }
+  } catch { return 0 }
+}
+
+function fmtTs(ts: number): string {
+  if (!ts) return ''
+  return new Date(ts * 1000).toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
 }
 
 function fmtRelative(ts: number): string {
@@ -87,8 +97,82 @@ function fmtRelative(ts: number): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-// ── Fetch a single block range via the dedicated logs client ─────────────────
-// Returns null when all retries exhausted (caller shows the busy/retry UI).
+function fmtTimeLabel(ts: number): string {
+  if (!ts) return ''
+  const diff = Math.floor(Date.now() / 1000) - ts
+  // Use relative for recent, absolute for older
+  if (diff < 86400 * 2) return fmtRelative(ts)
+  return fmtTs(ts)
+}
+
+// ── Decode a single ExplorerLog (explorer-API path) ───────────────────────────
+
+function decodeExplorerLog(
+  log: ExplorerLog,
+  potId: bigint,
+  memberSet: Set<string>,
+  t: (k: string, v?: Record<string, string>) => string,
+  contributionAmount: bigint,
+): HistoryEntry | null {
+  try {
+    // Try Contributed
+    try {
+      const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Contributed', topics: log.topics, data: log.data, strict: false })
+      if (d.args.potId !== potId) return null
+      return {
+        kind: 'Contributed',
+        blockNumber: log.blockNumber,
+        txHash: log.transactionHash,
+        label: t('history.contributed', { round: String(Number(d.args.round) + 1), addr: fmtAddr(d.args.member), amount: fmtUsdc(contributionAmount) }),
+        timeLabel: fmtTimeLabel(log.timestamp),
+      }
+    } catch { /* not this event */ }
+
+    // Try RoundClosed
+    try {
+      const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundClosed', topics: log.topics, data: log.data, strict: false })
+      if (d.args.potId !== potId) return null
+      return {
+        kind: 'RoundClosed',
+        blockNumber: log.blockNumber,
+        txHash: log.transactionHash,
+        label: t('history.closed', { round: String(Number(d.args.round) + 1), amount: fmtUsdc(d.args.amount), addr: fmtAddr(d.args.recipient) }),
+        timeLabel: fmtTimeLabel(log.timestamp),
+      }
+    } catch { /* not this event */ }
+
+    // Try RoundCancelled
+    try {
+      const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundCancelled', topics: log.topics, data: log.data, strict: false })
+      if (d.args.potId !== potId) return null
+      return {
+        kind: 'RoundCancelled',
+        blockNumber: log.blockNumber,
+        txHash: log.transactionHash,
+        label: t('history.cancelled', { round: String(Number(d.args.round) + 1) }),
+        timeLabel: fmtTimeLabel(log.timestamp),
+      }
+    } catch { /* not this event */ }
+
+    // Try Withdrawn — filter to pot members only
+    try {
+      const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Withdrawn', topics: log.topics, data: log.data, strict: false })
+      if (!memberSet.has((d.args.account ?? '').toLowerCase())) return null
+      return {
+        kind: 'Withdrawn',
+        blockNumber: log.blockNumber,
+        txHash: log.transactionHash,
+        label: t('history.withdrawn', { addr: fmtAddr(d.args.account), amount: fmtUsdc(d.args.amount) }),
+        timeLabel: fmtTimeLabel(log.timestamp),
+      }
+    } catch { /* not this event */ }
+
+    return null
+  } catch { return null }
+}
+
+// ── RPC-scan path: fetch one block range ─────────────────────────────────────
+
 async function fetchRangeWithLogsClient(
   chainId: number,
   addr: `0x${string}`,
@@ -100,7 +184,6 @@ async function fetchRangeWithLogsClient(
   for (const rpcUrl of rpcs) {
     const client = getLogsClient(chainId, rpcUrl)
     try {
-      // Sequential: one event type at a time + 300ms pause between calls
       const contributed = (await logsWithBackoff(() => client.getLogs({
         address: addr,
         event: { type: 'event', name: 'Contributed', inputs: [
@@ -144,16 +227,14 @@ async function fetchRangeWithLogsClient(
       }))) as RawLog[]
 
       return { contributed, closed, cancelled, withdrawn }
-    } catch {
-      // Try next RPC in the list
-    }
+    } catch { /* try next RPC */ }
   }
   return null
 }
 
-// ── Decode range logs → HistoryEntry[] ────────────────────────────────────────
+// ── Decode RPC-scan path logs ─────────────────────────────────────────────────
 
-function decodeLogs(
+function decodeRpcLogs(
   { contributed, closed, cancelled, withdrawn }: {
     contributed: RawLog[]; closed: RawLog[]; cancelled: RawLog[]; withdrawn: RawLog[]
   },
@@ -166,87 +247,60 @@ function decodeLogs(
   for (const log of contributed) {
     try {
       const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Contributed', topics: log.topics, data: log.data })
-      all.push({
-        kind: 'Contributed',
-        blockNumber: log.blockNumber ?? 0n,
-        txHash: log.transactionHash ?? '0x',
-        label: t('history.contributed', { round: String(Number(d.args.round) + 1), addr: fmtAddr(d.args.member), amount: fmtUsdc(contributionAmount) }),
-        timeLabel: '',
-      })
+      all.push({ kind: 'Contributed', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', label: t('history.contributed', { round: String(Number(d.args.round) + 1), addr: fmtAddr(d.args.member), amount: fmtUsdc(contributionAmount) }), timeLabel: '' })
     } catch { /* skip */ }
   }
   for (const log of closed) {
     try {
       const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundClosed', topics: log.topics, data: log.data })
-      all.push({
-        kind: 'RoundClosed',
-        blockNumber: log.blockNumber ?? 0n,
-        txHash: log.transactionHash ?? '0x',
-        label: t('history.closed', { round: String(Number(d.args.round) + 1), amount: fmtUsdc(d.args.amount), addr: fmtAddr(d.args.recipient) }),
-        timeLabel: '',
-      })
+      all.push({ kind: 'RoundClosed', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', label: t('history.closed', { round: String(Number(d.args.round) + 1), amount: fmtUsdc(d.args.amount), addr: fmtAddr(d.args.recipient) }), timeLabel: '' })
     } catch { /* skip */ }
   }
   for (const log of cancelled) {
     try {
       const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'RoundCancelled', topics: log.topics, data: log.data })
-      all.push({
-        kind: 'RoundCancelled',
-        blockNumber: log.blockNumber ?? 0n,
-        txHash: log.transactionHash ?? '0x',
-        label: t('history.cancelled', { round: String(Number(d.args.round) + 1) }),
-        timeLabel: '',
-      })
+      all.push({ kind: 'RoundCancelled', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', label: t('history.cancelled', { round: String(Number(d.args.round) + 1) }), timeLabel: '' })
     } catch { /* skip */ }
   }
   for (const log of withdrawn) {
     try {
       const d = decodeEventLog({ abi: TURNPOT_ABI, eventName: 'Withdrawn', topics: log.topics, data: log.data })
       if (!memberSet.has((d.args.account ?? '').toLowerCase())) continue
-      all.push({
-        kind: 'Withdrawn',
-        blockNumber: log.blockNumber ?? 0n,
-        txHash: log.transactionHash ?? '0x',
-        label: t('history.withdrawn', { addr: fmtAddr(d.args.account), amount: fmtUsdc(d.args.amount) }),
-        timeLabel: '',
-      })
+      all.push({ kind: 'Withdrawn', blockNumber: log.blockNumber ?? 0n, txHash: log.transactionHash ?? '0x', label: t('history.withdrawn', { addr: fmtAddr(d.args.account), amount: fmtUsdc(d.args.amount) }), timeLabel: '' })
     } catch { /* skip */ }
   }
-
   return all
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface PotHistoryProps {
-  potId: bigint
-  members: readonly `0x${string}`[]
+  potId:        bigint
+  members:      readonly `0x${string}`[]
   contribution: bigint
 }
 
 export default function PotHistory({ potId, members, contribution }: PotHistoryProps) {
   const { chainId: activeChainId, turnpotAddress, isTestnet } = useActiveChainConfig()
-  // usePublicClient is used ONLY for getBlock (timestamps) — NOT for getLogs.
-  // getLogs always goes through getLogsClient (logs-client.ts) to avoid hitting
-  // the Chainstack full-node endpoint which rejects archive getLogs.
+  // wagmiClient is used ONLY for getBlock (timestamps in RPC fallback mode).
   const wagmiClient = usePublicClient({ chainId: activeChainId })
   const { t } = useI18n()
 
-  const deployBlock = isTestnet ? 0n : MAINNET_DEPLOY_BLOCK
+  const deployBlock = isTestnet ? DEPLOY_BLOCK[arcTestnet.id] ?? 0n : DEPLOY_BLOCK[arcMainnet.id] ?? 0n
 
-  const [entries,      setEntries]      = useState<HistoryEntry[]>([])
-  const [loading,      setLoading]      = useState(true)
-  const [loadingMore,  setLoadingMore]  = useState(false)
-  const [failed,       setFailed]       = useState(false)
-  const [busyRetries,  setBusyRetries]  = useState(0)  // consecutive 429/backoff count
-  const [canLoadMore,  setCanLoadMore]  = useState(false)
-  // nextFrom: the next older block to load from (walk backwards)
+  const [entries,     setEntries]     = useState<HistoryEntry[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [failed,      setFailed]      = useState(false)
+  const [busyRetries, setBusyRetries] = useState(0)
+  // canLoadMore is only true in RPC-fallback mode (explorer gives everything at once)
+  const [canLoadMore, setCanLoadMore] = useState(false)
   const nextFromRef = useRef<bigint | null>(null)
 
   const memberSet = useRef(new Set<string>())
   memberSet.current = new Set(members.map((m) => m.toLowerCase()))
 
-  // Resolve timestamps for the top N entries
+  // Resolve timestamps for RPC-fallback entries (they come without timestamps)
   const resolveTimestamps = useCallback(async (list: HistoryEntry[]) => {
     if (!wagmiClient) return
     const top = list.slice(0, 20)
@@ -258,47 +312,64 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
       for (let i = 0; i < top.length; i++) {
         const idx = updated.indexOf(top[i])
         if (idx >= 0 && timestamps[i]) {
-          updated[idx] = { ...updated[idx], timeLabel: fmtRelative(timestamps[i]) }
+          updated[idx] = { ...updated[idx], timeLabel: fmtTimeLabel(timestamps[i]) }
         }
       }
       return updated
     })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wagmiClient, activeChainId])
 
-  // Initial load: last INITIAL_BLOCKS blocks
+  // ── Initial load ─────────────────────────────────────────────────────────────
+
   const loadInitial = useCallback(async () => {
-    if (!wagmiClient || !turnpotAddress || activeChainId === undefined) return
+    if (!turnpotAddress || activeChainId === undefined) return
     setLoading(true)
     setFailed(false)
     setBusyRetries(0)
     setEntries([])
+    setCanLoadMore(false)
+    nextFromRef.current = null
 
     const addr = turnpotAddress
+
+    // ── Path 1: Explorer API ──────────────────────────────────────────────────
+    try {
+      const fromBlock = isTestnet ? 0 : 27_849_693
+      const logs = await fetchExplorerLogs(activeChainId, addr, fromBlock, 'latest')
+
+      const decoded: HistoryEntry[] = []
+      for (const log of logs) {
+        const entry = decodeExplorerLog(log, potId, memberSet.current, t, contribution)
+        if (entry) decoded.push(entry)
+      }
+      decoded.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : 0))
+      setEntries(decoded)
+      setLoading(false)
+      // Explorer returned everything — no "Load more" needed
+      return
+    } catch {
+      // Fall through to RPC scan
+    }
+
+    // ── Path 2: RPC scan (fallback) ───────────────────────────────────────────
+    if (!wagmiClient) { setFailed(true); setLoading(false); return }
     try {
       const latest = await wagmiClient.getBlockNumber()
       const from = latest > INITIAL_BLOCKS ? latest - INITIAL_BLOCKS : deployBlock
       const clampedFrom = from < deployBlock ? deployBlock : from
 
       const result = await fetchRangeWithLogsClient(activeChainId, addr, potId, clampedFrom, latest)
-      if (result === null) {
-        setFailed(true)
-        setLoading(false)
-        return
-      }
+      if (result === null) { setFailed(true); setLoading(false); return }
 
-      const decoded = decodeLogs(result, memberSet.current, t, contribution)
+      const decoded = decodeRpcLogs(result, memberSet.current, t, contribution)
       decoded.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : 0))
       setEntries(decoded)
 
-      // Set up "load more" cursor: next chunk starts just before clampedFrom
       if (clampedFrom > deployBlock) {
         nextFromRef.current = clampedFrom - 1n
         setCanLoadMore(true)
-      } else {
-        nextFromRef.current = null
-        setCanLoadMore(false)
       }
-
       void resolveTimestamps(decoded)
     } catch {
       setFailed(true)
@@ -306,17 +377,18 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
       setLoading(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [potId, wagmiClient, turnpotAddress, activeChainId, t, deployBlock])
+  }, [potId, wagmiClient, turnpotAddress, activeChainId, t, deployBlock, isTestnet])
 
-  // Load more: one 2000-block chunk backwards, sequential
+  // ── Load more (RPC fallback only) ─────────────────────────────────────────
+
   const loadMore = useCallback(async () => {
     if (!wagmiClient || !turnpotAddress || nextFromRef.current === null || loadingMore || activeChainId === undefined) return
     setLoadingMore(true)
     setBusyRetries(0)
 
-    const addr  = turnpotAddress
-    const to    = nextFromRef.current
-    const from  = to >= CHUNK ? to - CHUNK + 1n : deployBlock
+    const addr = turnpotAddress
+    const to   = nextFromRef.current
+    const from = to >= CHUNK ? to - CHUNK + 1n : deployBlock
     const clampedFrom = from < deployBlock ? deployBlock : from
 
     const result = await fetchRangeWithLogsClient(activeChainId, addr, potId, clampedFrom, to)
@@ -326,7 +398,7 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
       return
     }
 
-    const decoded = decodeLogs(result, memberSet.current, t, contribution)
+    const decoded = decodeRpcLogs(result, memberSet.current, t, contribution)
     decoded.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : 0))
     setEntries((prev) => [...prev, ...decoded])
 
@@ -345,7 +417,7 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
 
   useEffect(() => { void loadInitial() }, [loadInitial])
 
-  // ── Dot colours ────────────────────────────────────────────────────────────
+  // ── Dot colours ──────────────────────────────────────────────────────────────
 
   const dot: Record<EventKind, string> = {
     Contributed:    '#2775CA',
@@ -354,7 +426,7 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
     Withdrawn:      'var(--accent-hover)',
   }
 
-  // ── Skeleton ───────────────────────────────────────────────────────────────
+  // ── Skeleton ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -372,7 +444,7 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
     )
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
+  // ── Error ─────────────────────────────────────────────────────────────────────
 
   if (failed) {
     return (
@@ -390,13 +462,13 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
     )
   }
 
-  // ── Empty ──────────────────────────────────────────────────────────────────
+  // ── Empty ─────────────────────────────────────────────────────────────────────
 
   if (entries.length === 0 && !canLoadMore) {
     return <p className="text-sm" style={{ color: 'var(--subtle)' }}>{t('history.empty')}</p>
   }
 
-  // ── List ───────────────────────────────────────────────────────────────────
+  // ── List ──────────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-3">
@@ -432,7 +504,7 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
         ))}
       </ul>
 
-      {/* "Network busy" notice after repeated backoffs */}
+      {/* "Network busy" notice — RPC fallback mode only */}
       {busyRetries >= 3 && (
         <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'var(--surface-muted)', color: 'var(--muted)' }}>
           <span>{t('rpc.busy')}</span>
@@ -446,7 +518,7 @@ export default function PotHistory({ potId, members, contribution }: PotHistoryP
         </div>
       )}
 
-      {/* Load more button */}
+      {/* Load older events — RPC fallback mode only (hidden when explorer API succeeded) */}
       {canLoadMore && (
         <button
           onClick={() => { void loadMore() }}
